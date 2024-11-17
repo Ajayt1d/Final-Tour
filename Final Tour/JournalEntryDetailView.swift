@@ -4,16 +4,17 @@ struct JournalEntryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var entry: JournalEntry
     @State private var isEditing = false
+    @State private var showingImportSheet = false
+    @State private var showingDeleteAlert = false
     @State private var editedTitle: String
     @State private var editedContent: String
-    @State private var editedLocation: String
     @State private var editedMood: EntryMood
+    @StateObject private var journeyStore = JourneyStore.shared
     
     init(entry: Binding<JournalEntry>) {
         self._entry = entry
         self._editedTitle = State(initialValue: entry.wrappedValue.title)
         self._editedContent = State(initialValue: entry.wrappedValue.content)
-        self._editedLocation = State(initialValue: entry.wrappedValue.location)
         self._editedMood = State(initialValue: entry.wrappedValue.mood)
     }
     
@@ -21,130 +22,134 @@ struct JournalEntryDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if isEditing {
-                    editingView
+                    VStack(alignment: .leading, spacing: 20) {
+                        TextField("Title", text: $editedTitle)
+                            .font(.system(size: 24, weight: .bold))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        HStack {
+                            ForEach(EntryMood.allCases, id: \.self) { mood in
+                                Button(action: {
+                                    editedMood = mood
+                                }) {
+                                    Text(mood.emoji)
+                                        .font(.system(size: 30))
+                                        .opacity(editedMood == mood ? 1.0 : 0.5)
+                                }
+                            }
+                            Spacer()
+                            Button(action: {
+                                showingImportSheet = true
+                            }) {
+                                Label("Import Ride", systemImage: "square.and.arrow.down")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        
+                        TextEditor(text: $editedContent)
+                            .frame(minHeight: 200)
+                            .padding(8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                    }
                 } else {
-                    viewingView
+                    HStack {
+                        Text(entry.title)
+                            .font(.system(size: 24, weight: .bold))
+                        Spacer()
+                        Text(entry.mood.emoji)
+                            .font(.system(size: 30))
+                    }
+                    
+                    Text(entry.date.formatted(date: .long, time: .shortened))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text(entry.content)
+                        .font(.body)
+                        .lineSpacing(8)
                 }
             }
             .padding()
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if !isEditing {
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isEditing ? "Done" : "Edit") {
                     if isEditing {
-                        saveChanges()
+                        entry.title = editedTitle
+                        entry.content = editedContent
+                        entry.mood = editedMood
                     }
                     isEditing.toggle()
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
-    }
-    
-    private var editingView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            TextField("Title", text: $editedTitle)
-                .font(.title)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.bottom, 8)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Location", systemImage: "location.fill")
-                    .foregroundColor(.secondary)
-                TextField("Location", text: $editedLocation)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+        .alert("Delete Entry", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                // Handle delete
+                dismiss()
             }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Mood", systemImage: "face.smiling")
-                    .foregroundColor(.secondary)
-                Picker("Mood", selection: $editedMood) {
-                    ForEach(EntryMood.allCases, id: \.self) { mood in
-                        Text(mood.rawValue).tag(mood)
+        } message: {
+            Text("Are you sure you want to delete this entry?")
+        }
+        .sheet(isPresented: $showingImportSheet) {
+            NavigationView {
+                List {
+                    ForEach(journeyStore.journeys) { journey in
+                        Button(action: {
+                            importJourney(journey)
+                            showingImportSheet = false
+                        }) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(journey.title)
+                                    .font(.headline)
+                                HStack {
+                                    Text(journey.date.formatted(date: .abbreviated, time: .shortened))
+                                    Text("•")
+                                    Text(journey.distance)
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
-            }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Journal Entry", systemImage: "text.book.closed")
-                    .foregroundColor(.secondary)
-                TextEditor(text: $editedContent)
-                    .frame(minHeight: 200)
-                    .padding(8)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(8)
-            }
-        }
-    }
-    
-    private var viewingView: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            // Header
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(entry.title)
-                        .font(.title)
-                        .bold()
-                    Spacer()
-                    Text(entry.mood.emoji)
-                        .font(.title)
-                }
-                
-                Text(entry.date.formatted(date: .long, time: .shortened))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.bottom, 8)
-            
-            // Location
-            HStack {
-                Image(systemName: "location.fill")
-                    .foregroundColor(.blue)
-                Text(entry.location)
-                    .font(.headline)
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(Color(.systemBackground))
-            .cornerRadius(10)
-            
-            // Content
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Journal Entry")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                
-                Text(entry.content)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(10)
-            }
-            
-            if entry.hasPhotos {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Photos")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Photo gallery coming soon...")
-                        .foregroundColor(.secondary)
-                        .padding(16)
-                        .frame(maxWidth: .infinity)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(10)
+                .navigationTitle("Select Ride")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Cancel") {
+                            showingImportSheet = false
+                        }
+                    }
                 }
             }
         }
     }
     
-    private func saveChanges() {
-        entry.title = editedTitle
-        entry.content = editedContent
-        entry.location = editedLocation
-        entry.mood = editedMood
+    private func importJourney(_ journey: Journey) {
+        let rideSummary = """
+        🚲 \(journey.distance) in \(journey.location)
+        \(journey.weather.emoji) \(journey.mood.emoji) \(journey.road.emoji)
+        """
+        
+        if editedContent.isEmpty {
+            editedContent = rideSummary
+        } else {
+            editedContent += "\n\n" + rideSummary
+        }
     }
 }
 

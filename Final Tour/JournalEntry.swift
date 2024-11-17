@@ -11,19 +11,17 @@ struct JournalEntry: Identifiable {
 }
 
 enum EntryMood: String, CaseIterable {
-    case amazing = "Amazing 🤩"
-    case happy = "Happy 😊"
-    case okay = "Okay 😌"
-    case tired = "Tired 😮‍💨"
-    case rough = "Rough 😫"
+    case happy = "Happy"
+    case tired = "Tired"
+    case upset = "Upset"
+    case angry = "Angry"
     
     var emoji: String {
         switch self {
-        case .amazing: return "🤩"
         case .happy: return "😊"
-        case .okay: return "😌"
-        case .tired: return "😮‍💨"
-        case .rough: return "😫"
+        case .tired: return "😴"
+        case .upset: return "☹️"
+        case .angry: return "😠"
         }
     }
 } 

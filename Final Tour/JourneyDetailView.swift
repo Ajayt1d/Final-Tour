@@ -4,53 +4,34 @@ import MapKit
 struct JourneyDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var journey: Journey
-    @StateObject private var journeyStore = JourneyStore.shared
     @State private var isEditing = false
-    @State private var showingDeleteConfirmation = false
-    @State private var region: MKCoordinateRegion
-    let isNewJourney: Bool
+    @State private var showingDeleteAlert = false
+    @State private var editedTitle: String
+    @State private var editedContent: String
+    @State private var editedMood: Mood
+    @State private var editedRoad: Road
+    @State private var editedWeather: Weather
+    @State private var region = MKCoordinateRegion()
+    var isNewJourney: Bool
+    var isFromJourneyMenu: Bool
     var onSave: ((Journey) -> Void)?
     var onDelete: (() -> Void)?
     
-    // Editing states
-    @State private var editedTitle: String
-    @State private var editedDistance: String
-    @State private var editedLocation: String
-    @State private var editedWeather: Weather
-    @State private var editedMood: Mood
-    @State private var editedRoad: Road
-    @State private var editedNotes: String
-    @State private var editedDuration: String
-    @State private var editedAverageSpeed: String
-    @State private var editedElevation: String
-    
-    init(journey: Binding<Journey>, isNewJourney: Bool = false, onSave: ((Journey) -> Void)? = nil, onDelete: (() -> Void)? = nil) {
+    init(journey: Binding<Journey>, 
+         isNewJourney: Bool = false, 
+         isFromJourneyMenu: Bool = false, 
+         onSave: ((Journey) -> Void)? = nil, 
+         onDelete: (() -> Void)? = nil) {
         self._journey = journey
         self.isNewJourney = isNewJourney
+        self.isFromJourneyMenu = isFromJourneyMenu
         self.onSave = onSave
         self.onDelete = onDelete
-        
-        // Initialize editing states
         self._editedTitle = State(initialValue: journey.wrappedValue.title)
-        self._editedDistance = State(initialValue: journey.wrappedValue.distance)
-        self._editedLocation = State(initialValue: journey.wrappedValue.location)
-        self._editedWeather = State(initialValue: journey.wrappedValue.weather)
+        self._editedContent = State(initialValue: journey.wrappedValue.notes)
         self._editedMood = State(initialValue: journey.wrappedValue.mood)
         self._editedRoad = State(initialValue: journey.wrappedValue.road)
-        self._editedNotes = State(initialValue: journey.wrappedValue.notes)
-        self._editedDuration = State(initialValue: journey.wrappedValue.duration ?? "00:00")
-        self._editedAverageSpeed = State(initialValue: journey.wrappedValue.averageSpeed ?? "0 mph")
-        self._editedElevation = State(initialValue: journey.wrappedValue.elevation ?? "0 ft")
-        
-        let initialRegion = MKCoordinateRegion(
-            center: journey.wrappedValue.locationManager?.currentLocation?.coordinate ?? 
-                   CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275),
-            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-        )
-        self._region = State(initialValue: initialRegion)
-        
-        // If it's a new journey, start in editing mode
-        self._isEditing = State(initialValue: isNewJourney)
+        self._editedWeather = State(initialValue: journey.wrappedValue.weather)
     }
     
     var body: some View {
@@ -73,9 +54,9 @@ struct JourneyDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                if !isNewJourney {
+                if !isEditing && isFromJourneyMenu {
                     Button("Delete") {
-                        showingDeleteConfirmation = true
+                        showingDeleteAlert = true
                     }
                     .foregroundColor(.red)
                 }
@@ -94,7 +75,7 @@ struct JourneyDetailView: View {
                 }
             }
         }
-        .alert("Delete Journey", isPresented: $showingDeleteConfirmation) {
+        .alert("Delete Journey", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
                 onDelete?()
@@ -111,17 +92,11 @@ struct JourneyDetailView: View {
     private func saveChanges() {
         withAnimation {
             journey.title = editedTitle
-            journey.distance = editedDistance
-            journey.location = editedLocation
-            journey.weather = editedWeather
+            journey.notes = editedContent
             journey.mood = editedMood
             journey.road = editedRoad
-            journey.notes = editedNotes
-            journey.duration = editedDuration
-            journey.averageSpeed = editedAverageSpeed
-            journey.elevation = editedElevation
-            
-            journeyStore.updateJourney(journey)
+            journey.weather = editedWeather
+            journey.isCompleted = true
             onSave?(journey)
         }
     }
@@ -184,7 +159,7 @@ struct JourneyDetailView: View {
             VStack(alignment: .leading) {
                 Text("Comments")
                     .font(.headline)
-                TextEditor(text: $editedNotes)
+                TextEditor(text: $editedContent)
                     .frame(height: 100)
                     .padding(5)
                     .background(Color(.systemBackground))

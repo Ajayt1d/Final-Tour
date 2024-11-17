@@ -130,9 +130,21 @@ struct JourneyCard: View {
         .sheet(isPresented: $showingDetail) {
             NavigationView {
                 JourneyDetailView(
-                    journey: $journey,
-                    isNewJourney: false,
-                    onDelete: onDelete
+                    journey: Binding(
+                        get: { journey },
+                        set: { newValue in
+                            if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
+                                journeyStore.journeys[index] = newValue
+                            }
+                        }
+                    ),
+                    isFromJourneyMenu: true,
+                    onDelete: {
+                        if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
+                            journeyStore.journeys.remove(at: index)
+                        }
+                        showingDetail = false
+                    }
                 )
             }
         }

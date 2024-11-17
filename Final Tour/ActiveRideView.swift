@@ -121,14 +121,16 @@ struct ActiveRideView: View {
                             get: { journeyStore.journeys[index] },
                             set: { updatedJourney in
                                 journeyStore.journeys[index] = updatedJourney
-                                journeyStore.updateJourney(updatedJourney)
                             }
                         ),
                         isNewJourney: false,
+                        isFromJourneyMenu: false,
                         onSave: { _ in
                             showingJourneyDetail = false
-                            dismiss()
-                            onJourneyComplete(journeyStore.journeys[index])
+                            if let journey = currentJourney {
+                                onJourneyComplete(journey)
+                                dismiss()
+                            }
                         }
                     )
                 }

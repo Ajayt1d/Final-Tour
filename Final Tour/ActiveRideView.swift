@@ -61,32 +61,33 @@ struct ActiveRideView: View {
                     Button(action: {
                         isPaused.toggle()
                         if isPaused {
-                            pauseRide()
+                            locationManager.stopTracking()
                         } else {
-                            resumeRide()
+                            locationManager.startTracking()
                         }
                     }) {
                         Circle()
-                            .fill(Color.orange)
-                            .frame(width: 60, height: 60)
+                            .fill(isPaused ? Color.green : Color.yellow)
+                            .frame(width: 70, height: 70)
                             .overlay(
                                 Image(systemName: isPaused ? "play.fill" : "pause.fill")
                                     .foregroundColor(.white)
-                                    .font(.title2)
+                                    .font(.title)
                             )
                     }
                     
                     // Stop Button
                     Button(action: {
+                        timer?.invalidate()
                         showingEndRideAlert = true
                     }) {
                         Circle()
                             .fill(Color.red)
-                            .frame(width: 60, height: 60)
+                            .frame(width: 70, height: 70)
                             .overlay(
                                 Image(systemName: "stop.fill")
                                     .foregroundColor(.white)
-                                    .font(.title2)
+                                    .font(.title)
                             )
                     }
                 }
@@ -103,10 +104,14 @@ struct ActiveRideView: View {
             }
         }
         .alert("End Ride", isPresented: $showingEndRideAlert) {
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {
+                startTimer()
+            }
             Button("End Ride", role: .destructive) {
                 endRide()
             }
+        } message: {
+            Text("Are you sure you want to end this ride?")
         }
         .sheet(isPresented: $showingJourneyDetail) {
             if let index = journeyStore.journeys.firstIndex(where: { $0.id == currentJourney?.id }) {
@@ -161,7 +166,9 @@ struct ActiveRideView: View {
     
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsedTime += 1
+            if !isPaused {
+                elapsedTime += 1
+            }
         }
     }
     

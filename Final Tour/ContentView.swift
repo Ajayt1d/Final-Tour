@@ -8,14 +8,31 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var selectedTab = 0
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, momomomo!")
+        TabView(selection: $selectedTab) {
+            JourneyView()
+                .tag(0)
+            
+            JournalView()
+                .tag(1)
+            
+            Text("Directions")  // Placeholder for now
+                .tag(2)
+            
+            Text("Memories")    // Placeholder for now
+                .tag(3)
+            
+            Text("Profile")     // Placeholder for now
+                .tag(4)
         }
-        .padding()
+        .overlay(
+            CustomTabBar(selectedTab: $selectedTab)
+                .background(Color(.systemBackground))
+                .shadow(radius: 2),
+            alignment: .bottom
+        )
     }
 }
 

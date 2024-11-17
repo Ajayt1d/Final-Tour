@@ -1,6 +1,42 @@
 import SwiftUI
 
 struct JourneyView: View {
+    @State private var journeys: [Journey] = [
+        Journey(
+            title: "New Ride",
+            date: Date(),
+            distance: "0.0 mi",
+            location: "Starting Point",
+            weather: .sunny,
+            mood: .amazing,
+            road: .excellent,
+            notes: "",
+            isCompleted: false
+        ),
+        Journey(
+            title: "Scottish Highlands",
+            date: Date().addingTimeInterval(-172800),
+            distance: "280 mi",
+            location: "Glencoe",
+            weather: .overcast,
+            mood: .happy,
+            road: .caution,
+            notes: "Beautiful mountain roads, but watch for visibility",
+            isCompleted: true
+        ),
+        Journey(
+            title: "Alps Adventure",
+            date: Date().addingTimeInterval(-604800),
+            distance: "450 mi",
+            location: "Swiss Alps",
+            weather: .snow,
+            mood: .tired,
+            road: .poor,
+            notes: "Challenging conditions but worth it",
+            isCompleted: true
+        )
+    ]
+    
     var body: some View {
         VStack {
             // Header
@@ -14,23 +50,9 @@ struct JourneyView: View {
             // Journey List
             ScrollView {
                 VStack(spacing: 12) {
-                    JourneyCard(title: "New Ride", 
-                              distance: "0.0 mi",
-                              date: "14 Nov 2024 at 16:55",
-                              weather: .sunny,
-                              mood: .good)
-                    
-                    JourneyCard(title: "Scottish Highlands",
-                              distance: "280 mi",
-                              date: "2 days ago",
-                              weather: .rainy,
-                              mood: .bad)
-                    
-                    JourneyCard(title: "Alps Adventure",
-                              distance: "450 mi",
-                              date: "Last Week",
-                              weather: .sunny,
-                              mood: .good)
+                    ForEach($journeys) { $journey in
+                        JourneyCard(journey: $journey)
+                    }
                 }
                 .padding()
             }
@@ -61,20 +83,17 @@ struct JourneyView: View {
 }
 
 struct JourneyCard: View {
-    let title: String
-    let distance: String
-    let date: String
-    let weather: Weather
-    let mood: Mood
+    @Binding var journey: Journey
+    @State private var showingDetail = false
     
     var body: some View {
         HStack {
             // Left side - Title and Distance
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(journey.title)
                     .font(.headline)
                     .foregroundColor(.primary)
-                Text(distance)
+                Text(journey.distance)
                     .font(.title2)
                     .foregroundColor(.secondary)
                     .bold()
@@ -82,69 +101,38 @@ struct JourneyCard: View {
             
             Spacer()
             
-            // Right side - Date and Icons
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(date)
+            // Right side - Icons and Status
+            VStack(alignment: .trailing, spacing: 8) {
+                Text(journey.date.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
                 HStack(spacing: 12) {
-                    // Weather Icon
-                    Image(systemName: weatherIcon)
-                        .foregroundColor(weatherColor)
+                    // Weather Emoji
+                    Text(journey.weather.emoji)
                     
-                    // Mood Icon
-                    Image(systemName: moodIcon)
-                        .foregroundColor(moodColor)
+                    // Mood Emoji
+                    Text(journey.mood.emoji)
                     
-                    // Checkmark
-                    Image(systemName: "checkmark")
-                        .foregroundColor(.green)
+                    // Road Condition Emoji
+                    Text(journey.road.emoji)
                 }
+                .font(.title3)  // Make emojis slightly larger
             }
         }
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(15)
         .shadow(radius: 2)
-    }
-    
-    // Helper properties for icons
-    private var weatherIcon: String {
-        switch weather {
-        case .sunny: return "sun.max.fill"
-        case .rainy: return "cloud.rain.fill"
+        .onTapGesture {
+            showingDetail = true
+        }
+        .sheet(isPresented: $showingDetail) {
+            NavigationView {
+                JourneyDetailView(journey: $journey)
+            }
         }
     }
-    
-    private var weatherColor: Color {
-        switch weather {
-        case .sunny: return .yellow
-        case .rainy: return .blue
-        }
-    }
-    
-    private var moodIcon: String {
-        switch mood {
-        case .good: return "heart.fill"
-        case .bad: return "hand.thumbsdown.fill"
-        }
-    }
-    
-    private var moodColor: Color {
-        switch mood {
-        case .good: return .red
-        case .bad: return .red
-        }
-    }
-}
-
-enum Weather {
-    case sunny, rainy
-}
-
-enum Mood {
-    case good, bad
 }
 
 #Preview {

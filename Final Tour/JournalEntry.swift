@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 struct JournalEntry: Identifiable {
     let id = UUID()
@@ -8,6 +9,7 @@ struct JournalEntry: Identifiable {
     var location: String
     var hasPhotos: Bool
     var mood: EntryMood
+    var images: [UIImage]?
 }
 
 enum EntryMood: String, CaseIterable {

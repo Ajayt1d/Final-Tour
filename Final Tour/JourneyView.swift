@@ -1,6 +1,17 @@
 import SwiftUI
 
 struct JourneyView: View {
+    @State private var entries: [JournalEntry] = [
+        JournalEntry(
+            title: "Great Morning Ride",
+            date: Date(),
+            content: "Had an amazing ride through the city...",
+            location: "Edinburgh",
+            hasPhotos: false,
+            mood: .happy,
+            images: nil
+        )
+    ]
     @StateObject private var journeyStore = JourneyStore.shared
     @State private var showingPreRideChecklist = false
     @State private var showingActiveRide = false

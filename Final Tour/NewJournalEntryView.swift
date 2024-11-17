@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct NewJournalEntryView: View {
     @Environment(\.dismiss) private var dismiss
@@ -7,6 +8,8 @@ struct NewJournalEntryView: View {
     @State private var content = ""
     @State private var selectedMood: EntryMood = .happy
     @State private var showingImportSheet = false
+    @State private var showingImagePicker = false
+    @State private var selectedImages: [UIImage] = []
     @StateObject private var journeyStore = JourneyStore.shared
     
     var body: some View {
@@ -25,13 +28,51 @@ struct NewJournalEntryView: View {
                     }
                     .pickerStyle(.segmented)
                     
-                    // Import Ride Button
+                    // Import Buttons
                     Button(action: {
                         showingImportSheet = true
                     }) {
                         HStack {
                             Image(systemName: "square.and.arrow.down")
                             Text("Import Ride")
+                        }
+                    }
+                    
+                    Button(action: {
+                        showingImagePicker = true
+                    }) {
+                        HStack {
+                            Image(systemName: "photo.on.rectangle.angled")
+                            Text("Add Photos")
+                        }
+                    }
+                }
+                
+                if !selectedImages.isEmpty {
+                    Section("Photos") {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(selectedImages.indices, id: \.self) { index in
+                                    Image(uiImage: selectedImages[index])
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        .overlay(
+                                            Button(action: {
+                                                selectedImages.remove(at: index)
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.white)
+                                                    .background(Color.black.opacity(0.5))
+                                                    .clipShape(Circle())
+                                            }
+                                            .padding(4),
+                                            alignment: .topTrailing
+                                        )
+                                }
+                            }
+                            .padding(.vertical, 8)
                         }
                     }
                 }
@@ -50,8 +91,9 @@ struct NewJournalEntryView: View {
                             date: Date(),
                             content: content,
                             location: "",
-                            hasPhotos: false,
-                            mood: selectedMood
+                            hasPhotos: !selectedImages.isEmpty,
+                            mood: selectedMood,
+                            images: selectedImages.isEmpty ? nil : selectedImages
                         )
                         entries.insert(entry, at: 0)
                         dismiss()
@@ -92,6 +134,9 @@ struct NewJournalEntryView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImages: $selectedImages)
+            }
         }
     }
     
@@ -105,6 +150,44 @@ struct NewJournalEntryView: View {
             content = rideSummary
         } else {
             content += "\n\n" + rideSummary
+        }
+    }
+}
+
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var selectedImages: [UIImage]
+    @Environment(\.presentationMode) private var presentationMode
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
+        picker.allowsEditing = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+        
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImages.append(image)
+            }
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.presentationMode.wrappedValue.dismiss()
         }
     }
 }

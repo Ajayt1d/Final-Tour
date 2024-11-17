@@ -6,16 +6,20 @@ struct ActiveRideView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var locationManager = LocationManager()
     @StateObject private var weatherManager = WeatherManager()
+    @StateObject private var journeyStore = JourneyStore.shared
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275),
         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
     @State private var showingEndRideAlert = false
+    @State private var showingJourneyDetail = false
+    @State private var currentJourney: Journey?
     @State private var isPaused = false
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
-    @State private var showingJourneyEdit = false
     @State private var trackingMode = MapUserTrackingMode.follow
+    
+    var onJourneyComplete: (Journey) -> Void
     
     var body: some View {
         ZStack {
@@ -103,12 +107,26 @@ struct ActiveRideView: View {
             Button("End Ride", role: .destructive) {
                 endRide()
             }
-        } message: {
-            Text("Are you sure you want to end this ride?")
         }
-        .fullScreenCover(isPresented: $showingJourneyEdit) {
-            NavigationView {
-                JourneyDetailView(journey: .constant(createJourneyFromRide()))
+        .sheet(isPresented: $showingJourneyDetail) {
+            if let index = journeyStore.journeys.firstIndex(where: { $0.id == currentJourney?.id }) {
+                NavigationView {
+                    JourneyDetailView(
+                        journey: Binding(
+                            get: { journeyStore.journeys[index] },
+                            set: { updatedJourney in
+                                journeyStore.journeys[index] = updatedJourney
+                                journeyStore.updateJourney(updatedJourney)
+                            }
+                        ),
+                        isNewJourney: false,
+                        onSave: { _ in
+                            showingJourneyDetail = false
+                            dismiss()
+                            onJourneyComplete(journeyStore.journeys[index])
+                        }
+                    )
+                }
             }
         }
     }
@@ -131,7 +149,14 @@ struct ActiveRideView: View {
     private func endRide() {
         timer?.invalidate()
         locationManager.stopTracking()
-        showingJourneyEdit = true
+        
+        // Create and save the journey
+        let newJourney = createJourneyFromRide()
+        journeyStore.addJourney(newJourney)
+        
+        // Set current journey and show detail
+        currentJourney = newJourney
+        showingJourneyDetail = true
     }
     
     private func startTimer() {
@@ -149,6 +174,7 @@ struct ActiveRideView: View {
     
     private func createJourneyFromRide() -> Journey {
         Journey(
+            id: UUID(),
             title: "New Ride",
             date: Date(),
             distance: String(format: "%.1f mi", locationManager.calculateDistance() / 1609.34),
@@ -157,8 +183,20 @@ struct ActiveRideView: View {
             mood: .good,
             road: .excellent,
             notes: "",
-            isCompleted: true
+            isCompleted: true,
+            duration: timeString(from: elapsedTime),
+            averageSpeed: calculateAverageSpeed(),
+            elevation: "0 ft",
+            locationManager: locationManager,
+            routeLocations: locationManager.routeLocations
         )
+    }
+    
+    private func calculateAverageSpeed() -> String {
+        let distanceInMiles = locationManager.calculateDistance() / 1609.34
+        let hours = elapsedTime / 3600
+        let averageSpeed = hours > 0 ? distanceInMiles / hours : 0
+        return String(format: "%.1f mph", averageSpeed)
     }
 }
 

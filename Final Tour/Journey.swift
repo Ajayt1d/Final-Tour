@@ -1,7 +1,8 @@
 import SwiftUI
+import CoreLocation
 
-struct Journey: Identifiable {
-    let id = UUID()
+struct Journey: Identifiable, Codable {
+    let id: UUID
     var title: String
     var date: Date
     var distance: String
@@ -11,9 +12,23 @@ struct Journey: Identifiable {
     var road: Road
     var notes: String
     var isCompleted: Bool
+    
+    var duration: String?
+    var averageSpeed: String?
+    var elevation: String?
+    
+    // These properties can't be directly encoded
+    var locationManager: LocationManager?
+    var routeLocations: [CLLocation]?
+    
+    // Coding keys to exclude non-codable properties
+    enum CodingKeys: String, CodingKey {
+        case id, title, date, distance, location, weather, mood, road, notes, isCompleted
+        case duration, averageSpeed, elevation
+    }
 }
 
-enum Weather: String, CaseIterable {
+enum Weather: String, CaseIterable, Codable {
     case sunny = "Sunny"
     case overcast = "Overcast"
     case rainy = "Rainy"
@@ -55,7 +70,7 @@ enum Weather: String, CaseIterable {
     }
 }
 
-enum Mood: String, CaseIterable {
+enum Mood: String, CaseIterable, Codable {
     case amazing = "Amazing"
     case happy = "Happy"
     case good = "Good"
@@ -96,7 +111,7 @@ enum Mood: String, CaseIterable {
     }
 }
 
-enum Road: String, CaseIterable {
+enum Road: String, CaseIterable, Codable {
     case excellent = "Excellent"
     case caution = "Caution"
     case poor = "Poor"

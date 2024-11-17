@@ -1,43 +1,11 @@
 import SwiftUI
 
 struct JourneyView: View {
-    @State private var journeys: [Journey] = [
-        Journey(
-            title: "New Ride",
-            date: Date(),
-            distance: "0.0 mi",
-            location: "Starting Point",
-            weather: .sunny,
-            mood: .amazing,
-            road: .excellent,
-            notes: "",
-            isCompleted: false
-        ),
-        Journey(
-            title: "Scottish Highlands",
-            date: Date().addingTimeInterval(-172800),
-            distance: "280 mi",
-            location: "Glencoe",
-            weather: .overcast,
-            mood: .happy,
-            road: .caution,
-            notes: "Beautiful mountain roads, but watch for visibility",
-            isCompleted: true
-        ),
-        Journey(
-            title: "Alps Adventure",
-            date: Date().addingTimeInterval(-604800),
-            distance: "450 mi",
-            location: "Swiss Alps",
-            weather: .snow,
-            mood: .tired,
-            road: .poor,
-            notes: "Challenging conditions but worth it",
-            isCompleted: true
-        )
-    ]
+    @StateObject private var journeyStore = JourneyStore.shared
     @State private var showingPreRideChecklist = false
     @State private var showingActiveRide = false
+    @State private var showingJourneyDetail = false
+    @State private var selectedJourney: Journey?
     
     var body: some View {
         VStack {
@@ -47,13 +15,20 @@ struct JourneyView: View {
                 .bold()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
-                .foregroundColor(.primary)
             
             // Journey List
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach($journeys) { $journey in
-                        JourneyCard(journey: $journey)
+                    ForEach($journeyStore.journeys) { $journey in
+                        JourneyCard(
+                            journey: $journey,
+                            onDelete: {
+                                if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
+                                    journeyStore.journeys.remove(at: index)
+                                    journeyStore.save()
+                                }
+                            }
+                        )
                     }
                 }
                 .padding()
@@ -80,7 +55,6 @@ struct JourneyView: View {
             }
             .padding(.vertical, 10)
         }
-        .background(Color(.systemBackground))
         .sheet(isPresented: $showingPreRideChecklist) {
             PreRideChecklistView(onStartRide: {
                 showingPreRideChecklist = false
@@ -88,14 +62,18 @@ struct JourneyView: View {
             })
         }
         .fullScreenCover(isPresented: $showingActiveRide) {
-            ActiveRideView()
+            ActiveRideView { newJourney in
+                showingActiveRide = false
+            }
         }
     }
 }
 
 struct JourneyCard: View {
     @Binding var journey: Journey
+    let onDelete: () -> Void
     @State private var showingDetail = false
+    @StateObject private var journeyStore = JourneyStore.shared
     
     var body: some View {
         HStack {
@@ -140,7 +118,11 @@ struct JourneyCard: View {
         }
         .sheet(isPresented: $showingDetail) {
             NavigationView {
-                JourneyDetailView(journey: $journey)
+                JourneyDetailView(
+                    journey: $journey,
+                    isNewJourney: false,
+                    onDelete: onDelete
+                )
             }
         }
     }

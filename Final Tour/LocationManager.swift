@@ -7,7 +7,10 @@ class LocationManager: NSObject, ObservableObject {
     @Published var locationStatus: CLAuthorizationStatus?
     @Published var lastError: Error?
     @Published var isTracking = false
+    @Published var isPaused = false
     @Published var routeLocations: [CLLocation] = []
+    @Published var totalDistance: Double = 0
+    @Published var currentLocationName: String = ""
     
     override init() {
         super.init()
@@ -16,6 +19,8 @@ class LocationManager: NSObject, ObservableObject {
         locationManager.allowsBackgroundLocationUpdates = true
         locationManager.showsBackgroundLocationIndicator = true
         locationManager.pausesLocationUpdatesAutomatically = false
+        locationManager.activityType = .automotiveNavigation
+        locationManager.distanceFilter = 10 // Update every 10 meters
     }
     
     func requestPermission() {
@@ -25,22 +30,46 @@ class LocationManager: NSObject, ObservableObject {
     func startTracking() {
         locationManager.startUpdatingLocation()
         isTracking = true
+        isPaused = false
         routeLocations.removeAll()
+        totalDistance = 0
+    }
+    
+    func pauseTracking() {
+        locationManager.stopUpdatingLocation()
+        isPaused = true
+    }
+    
+    func resumeTracking() {
+        locationManager.startUpdatingLocation()
+        isPaused = false
     }
     
     func stopTracking() {
         locationManager.stopUpdatingLocation()
         isTracking = false
+        isPaused = false
     }
     
     func calculateDistance() -> Double {
-        var distance = 0.0
-        guard routeLocations.count > 1 else { return distance }
-        
-        for i in 0..<routeLocations.count-1 {
-            distance += routeLocations[i].distance(from: routeLocations[i+1])
+        return totalDistance
+    }
+    
+    func reverseGeocode(location: CLLocation) {
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            if let placemark = placemarks?.first {
+                let location = [
+                    placemark.locality,
+                    placemark.administrativeArea,
+                    placemark.country
+                ].compactMap { $0 }.joined(separator: ", ")
+                
+                DispatchQueue.main.async {
+                    self.currentLocationName = location
+                }
+            }
         }
-        return distance
     }
 }
 
@@ -52,7 +81,12 @@ extension LocationManager: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         currentLocation = location
-        if isTracking {
+        
+        if isTracking && !isPaused {
+            if let lastLocation = routeLocations.last {
+                let distance = location.distance(from: lastLocation)
+                totalDistance += distance
+            }
             routeLocations.append(location)
         }
     }

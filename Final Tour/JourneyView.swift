@@ -36,6 +36,8 @@ struct JourneyView: View {
             isCompleted: true
         )
     ]
+    @State private var showingPreRideChecklist = false
+    @State private var showingActiveRide = false
     
     var body: some View {
         VStack {
@@ -59,7 +61,7 @@ struct JourneyView: View {
             
             // Start Ride Button
             Button(action: {
-                // Add start ride action here
+                showingPreRideChecklist = true
             }) {
                 Text("Start Ride")
                     .font(.headline)
@@ -79,6 +81,15 @@ struct JourneyView: View {
             .padding(.vertical, 10)
         }
         .background(Color(.systemBackground))
+        .sheet(isPresented: $showingPreRideChecklist) {
+            PreRideChecklistView(onStartRide: {
+                showingPreRideChecklist = false
+                showingActiveRide = true
+            })
+        }
+        .fullScreenCover(isPresented: $showingActiveRide) {
+            ActiveRideView()
+        }
     }
 }
 

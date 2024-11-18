@@ -17,6 +17,7 @@ struct JourneyDetailView: View {
     var onSave: ((Journey) -> Void)?
     var onDelete: (() -> Void)?
     @State private var showingShareSheet = false
+    @State private var showingImagePicker = false
     
     init(journey: Binding<Journey>, 
          isNewJourney: Bool = false, 
@@ -104,6 +105,14 @@ struct JourneyDetailView: View {
                 preview: SharePreview(journey.title)
             )
         }
+        .sheet(isPresented: $showingImagePicker) {
+            JourneyImagePicker(selectedImages: Binding(
+                get: { journey.images ?? [] },
+                set: { newImages in
+                    journey.images = newImages
+                }
+            ))
+        }
         .onChange(of: isEditing) { newValue in
             if !newValue {
                 saveChanges()
@@ -187,6 +196,54 @@ struct JourneyDetailView: View {
                     .background(Color(.systemBackground))
                     .cornerRadius(8)
             }
+            
+            // Photos Section
+            VStack(alignment: .leading) {
+                Text("Photos")
+                    .font(.headline)
+                
+                if let images = journey.images, !images.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(images.indices, id: \.self) { index in
+                                if let uiImage = UIImage(data: images[index]) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .overlay(
+                                            Button(action: {
+                                                journey.images?.remove(at: index)
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.white)
+                                                    .background(Color.black.opacity(0.6))
+                                                    .clipShape(Circle())
+                                            }
+                                            .padding(5),
+                                            alignment: .topTrailing
+                                        )
+                                }
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+                }
+                
+                Button(action: {
+                    showingImagePicker = true
+                }) {
+                    HStack {
+                        Image(systemName: "photo.on.rectangle.angled")
+                        Text("Add Photos")
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(8)
+                }
+            }
         }
     }
     
@@ -245,6 +302,57 @@ struct JourneyDetailView: View {
                     .font(.headline)
                 Text(journey.notes.isEmpty ? "No comments yet" : journey.notes)
                     .foregroundColor(journey.notes.isEmpty ? .secondary : .primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(15)
+            
+            // Photos Section
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("Photos")
+                        .font(.headline)
+                    Spacer()
+                    Button(action: {
+                        showingImagePicker = true
+                    }) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                    }
+                }
+                
+                if let images = journey.images, !images.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(images.indices, id: \.self) { index in
+                                if let uiImage = UIImage(data: images[index]) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .overlay(
+                                            Button(action: {
+                                                journey.images?.remove(at: index)
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.white)
+                                                    .background(Color.black.opacity(0.6))
+                                                    .clipShape(Circle())
+                                            }
+                                            .padding(5),
+                                            alignment: .topTrailing
+                                        )
+                                }
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+                } else {
+                    Text("No photos added")
+                        .foregroundColor(.secondary)
+                        .padding(.vertical)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()

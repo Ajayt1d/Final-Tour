@@ -20,11 +20,12 @@ struct Journey: Identifiable, Codable {
     // These properties can't be directly encoded
     var locationManager: LocationManager?
     var routeLocations: [CLLocation]?
+    var images: [Data]?
     
     // Coding keys to exclude non-codable properties
     enum CodingKeys: String, CodingKey {
         case id, title, date, distance, location, weather, mood, road, notes, isCompleted
-        case duration, averageSpeed, elevation
+        case duration, averageSpeed, elevation, images
     }
 }
 

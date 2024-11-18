@@ -108,34 +108,66 @@ struct JournalEntryDetailView: View {
                     Text(entry.mood.emoji)
                         .font(.system(size: 30))
                     
-                    // Content
-                    Text(entry.content)
-                        .lineSpacing(8)
+                    // Content/Notes section
+                    VStack(alignment: .leading) {
+                        Text("Comments")
+                            .font(.headline)
+                        if isEditing {
+                            TextEditor(text: $editedContent)
+                                .frame(minHeight: 200)
+                                .padding(8)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        } else {
+                            Text(entry.content)
+                                .lineSpacing(8)
+                        }
+                    }
                     
-                    // Images below content
-                    if let images = entry.images, !images.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Photos")
-                                .font(.headline)
-                                .padding(.top, 8)
+                    // Imported Ride Stats Card
+                    if let importedJourney = entry.importedJourney {
+                        VStack(spacing: 15) {
+                            // Stats Grid
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: 15) {
+                                StatCard(title: "Distance", value: importedJourney.distance, emoji: "🏍")
+                                StatCard(title: "Duration", value: importedJourney.duration ?? "00:00", emoji: "⏱")
+                                StatCard(title: "Average Speed", value: importedJourney.averageSpeed ?? "0 mph", emoji: "⚡️")
+                                StatCard(title: "Location", value: importedJourney.location, emoji: "📍")
+                            }
                             
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(images.indices, id: \.self) { index in
-                                        Image(uiImage: images[index])
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 150, height: 150)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .onTapGesture {
-                                                selectedImageIndex = index
-                                                showingFullScreenImage = true
-                                            }
-                                    }
+                            // Conditions Row
+                            HStack(spacing: 20) {
+                                VStack {
+                                    Text("Weather")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(importedJourney.weather.emoji)
+                                        .font(.title)
                                 }
-                                .padding(.vertical, 8)
+                                
+                                VStack {
+                                    Text("Mood")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(importedJourney.mood.emoji)
+                                        .font(.title)
+                                }
+                                
+                                VStack {
+                                    Text("Road")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(importedJourney.road.emoji)
+                                        .font(.title)
+                                }
                             }
                         }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(15)
                     }
                 }
             }
@@ -218,16 +250,7 @@ struct JournalEntryDetailView: View {
     }
     
     private func importJourney(_ journey: Journey) {
-        let rideSummary = """
-        🚲 \(journey.distance) in \(journey.location)
-        \(journey.weather.emoji) \(journey.mood.emoji) \(journey.road.emoji)
-        """
-        
-        if editedContent.isEmpty {
-            editedContent = rideSummary
-        } else {
-            editedContent += "\n\n" + rideSummary
-        }
+        entry.importedJourney = journey
     }
 }
 

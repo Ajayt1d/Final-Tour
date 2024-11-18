@@ -6,76 +6,114 @@ struct NewJournalEntryView: View {
     @Binding var entries: [JournalEntry]
     @State private var title = ""
     @State private var content = ""
-    @State private var selectedMood: EntryMood = .happy
-    @State private var showingImportSheet = false
+    @State private var mood: EntryMood = .happy
     @State private var showingImagePicker = false
     @State private var selectedImages: [UIImage] = []
+    @State private var showingImportSheet = false
     @StateObject private var journeyStore = JourneyStore.shared
+    @State private var importedJourney: Journey?
     
     var body: some View {
         NavigationView {
-            Form {
-                Section {
-                    TextField("Title", text: $title)
-                    TextEditor(text: $content)
-                        .frame(height: 200)
-                    
-                    // Mood Selection
-                    Picker("Mood", selection: $selectedMood) {
-                        ForEach(EntryMood.allCases, id: \.self) { mood in
-                            Text(mood.emoji)
-                        }
+            VStack {
+                Form {
+                    Section {
+                        TextField("Title", text: $title)
                     }
-                    .pickerStyle(.segmented)
                     
-                    // Import Buttons
-                    Button(action: {
-                        showingImportSheet = true
-                    }) {
+                    Section {
                         HStack {
-                            Image(systemName: "square.and.arrow.down")
-                            Text("Import Ride")
-                        }
-                    }
-                    
-                    Button(action: {
-                        showingImagePicker = true
-                    }) {
-                        HStack {
-                            Image(systemName: "photo.on.rectangle.angled")
-                            Text("Add Photos")
-                        }
-                    }
-                }
-                
-                if !selectedImages.isEmpty {
-                    Section("Photos") {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
-                                ForEach(selectedImages.indices, id: \.self) { index in
-                                    Image(uiImage: selectedImages[index])
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 100, height: 100)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .overlay(
-                                            Button(action: {
-                                                selectedImages.remove(at: index)
-                                            }) {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundColor(.white)
-                                                    .background(Color.black.opacity(0.5))
-                                                    .clipShape(Circle())
-                                            }
-                                            .padding(4),
-                                            alignment: .topTrailing
-                                        )
+                            ForEach(EntryMood.allCases, id: \.self) { mood in
+                                Button(action: {
+                                    self.mood = mood
+                                }) {
+                                    Text(mood.emoji)
+                                        .font(.system(size: 30))
+                                        .opacity(self.mood == mood ? 1.0 : 0.5)
                                 }
                             }
-                            .padding(.vertical, 8)
                         }
                     }
+                    
+                    Section {
+                        TextEditor(text: $content)
+                            .frame(height: 200)
+                    }
+                    
+                    // Imported Ride Stats Card
+                    if let journey = importedJourney {
+                        Section {
+                            VStack(spacing: 15) {
+                                // Stats Grid
+                                LazyVGrid(columns: [
+                                    GridItem(.flexible()),
+                                    GridItem(.flexible())
+                                ], spacing: 15) {
+                                    StatCard(title: "Distance", value: journey.distance, emoji: "🏍")
+                                    StatCard(title: "Duration", value: journey.duration ?? "00:00", emoji: "⏱")
+                                    StatCard(title: "Average Speed", value: journey.averageSpeed ?? "0 mph", emoji: "⚡️")
+                                    StatCard(title: "Location", value: journey.location, emoji: "📍")
+                                }
+                                
+                                // Conditions Row
+                                HStack(spacing: 20) {
+                                    VStack {
+                                        Text("Weather")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(journey.weather.emoji)
+                                            .font(.title)
+                                    }
+                                    
+                                    VStack {
+                                        Text("Mood")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(journey.mood.emoji)
+                                            .font(.title)
+                                    }
+                                    
+                                    VStack {
+                                        Text("Road")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        Text(journey.road.emoji)
+                                            .font(.title)
+                                    }
+                                }
+                            }
+                            .padding()
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(15)
+                        }
+                    }
+                    
+                    // ... rest of your sections ...
                 }
+                
+                // Import Ride Button
+                Button(action: {
+                    showingImportSheet = true
+                }) {
+                    HStack {
+                        Image(systemName: "square.and.arrow.down.fill")
+                        Text("Import Ride")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(25)
+                    .padding(.horizontal)
+                }
+                .padding(.vertical, 10)
             }
             .navigationTitle("New Entry")
             .toolbar {
@@ -86,17 +124,7 @@ struct NewJournalEntryView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        let entry = JournalEntry(
-                            title: title,
-                            date: Date(),
-                            content: content,
-                            location: "",
-                            hasPhotos: !selectedImages.isEmpty,
-                            mood: selectedMood,
-                            images: selectedImages.isEmpty ? nil : selectedImages
-                        )
-                        entries.insert(entry, at: 0)
-                        dismiss()
+                        saveEntry()
                     }
                     .disabled(title.isEmpty)
                 }
@@ -134,23 +162,27 @@ struct NewJournalEntryView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingImagePicker) {
-                ImagePicker(selectedImages: $selectedImages)
-            }
         }
     }
     
     private func importJourney(_ journey: Journey) {
-        let rideSummary = """
-        🚲 \(journey.distance) in \(journey.location)
-        \(journey.weather.emoji) \(journey.mood.emoji) \(journey.road.emoji)
-        """
-        
-        if content.isEmpty {
-            content = rideSummary
-        } else {
-            content += "\n\n" + rideSummary
-        }
+        // Store the journey without adding text
+        importedJourney = journey
+    }
+    
+    private func saveEntry() {
+        let entry = JournalEntry(
+            title: title,
+            date: Date(),
+            content: content,
+            location: importedJourney?.location ?? "",
+            hasPhotos: !selectedImages.isEmpty,
+            mood: mood,
+            images: selectedImages,
+            importedJourney: importedJourney
+        )
+        entries.append(entry)
+        dismiss()
     }
 }
 

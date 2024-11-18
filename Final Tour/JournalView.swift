@@ -1,23 +1,14 @@
 import SwiftUI
 
 struct JournalView: View {
-    @State private var entries: [JournalEntry] = [
-        JournalEntry(
-            title: "Great Morning Ride",
-            date: Date(),
-            content: "Had an amazing ride through the city...",
-            location: "Edinburgh",
-            hasPhotos: false,
-            mood: .happy
-        )
-    ]
+    @State private var entries: [JournalEntry] = []
     @State private var showingNewEntry = false
     
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    ForEach(entries) { entry in
+                    ForEach(entries.sorted(by: { $0.date > $1.date })) { entry in
                         NavigationLink(destination: JournalEntryDetailView(entry: binding(for: entry))) {
                             JournalCard(entry: entry)
                         }

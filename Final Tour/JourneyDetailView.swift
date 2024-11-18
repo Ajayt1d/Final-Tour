@@ -254,16 +254,26 @@ struct JourneyDetailView: View {
                 .font(.title)
                 .bold()
             
-            // Stats Grid
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 15) {
-                StatCard(title: "Date", value: journey.date.formatted(date: .abbreviated, time: .shortened), emoji: "📅")
-                StatCard(title: "Distance", value: journey.distance, emoji: "📏")
-                StatCard(title: "Duration", value: journey.duration ?? "00:00", emoji: "⏱")
-                StatCard(title: "Average Speed", value: journey.averageSpeed ?? "0 mph", emoji: "⚡️")
-                StatCard(title: "Elevation Gain", value: journey.elevation ?? "0 ft", emoji: "️")
+            // Imported Ride Data Section (only show if it's a completed ride)
+            if journey.isCompleted {
+                VStack(spacing: 15) {
+                    Text("Ride Details")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 15) {
+                        StatCard(title: "Distance", value: journey.distance, emoji: "🏍")
+                        StatCard(title: "Duration", value: journey.duration ?? "00:00", emoji: "⏱")
+                        StatCard(title: "Average Speed", value: journey.averageSpeed ?? "0 mph", emoji: "⚡️")
+                        StatCard(title: "Location", value: journey.location, emoji: "📍")
+                    }
+                }
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(15)
             }
             
             // Conditions
@@ -296,17 +306,19 @@ struct JourneyDetailView: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(15)
             
-            // Notes
-            VStack(alignment: .leading) {
-                Text("Comments")
-                    .font(.headline)
-                Text(journey.notes.isEmpty ? "No comments yet" : journey.notes)
-                    .foregroundColor(journey.notes.isEmpty ? .secondary : .primary)
+            // Notes (only if not empty)
+            if !journey.notes.isEmpty {
+                VStack(alignment: .leading) {
+                    Text("Comments")
+                        .font(.headline)
+                    Text(journey.notes)
+                        .foregroundColor(.primary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(15)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(15)
             
             // Photos Section
             VStack(alignment: .leading) {
@@ -358,9 +370,11 @@ struct StatCard: View {
                     .font(.title3)
                 Text(value)
                     .font(.headline)
+                    .lineLimit(1)
             }
         }
         .padding()
+        .frame(height: 80)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.systemBackground))
         .cornerRadius(10)

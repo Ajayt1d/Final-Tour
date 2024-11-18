@@ -4,6 +4,7 @@ import MapKit
 struct RouteLocationSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedLocation: String
+    @Binding var selectedPlacemark: MKPlacemark?
     @State private var searchText = ""
     @StateObject private var searchCompleter = LocationSearchCompleter()
     
@@ -12,8 +13,13 @@ struct RouteLocationSearchView: View {
             List {
                 ForEach(searchCompleter.searchResults, id: \.self) { result in
                     Button(action: {
-                        selectedLocation = result.title
-                        dismiss()
+                        searchCompleter.getPlacemark(for: result) { placemark in
+                            if let placemark = placemark {
+                                selectedLocation = result.title
+                                selectedPlacemark = placemark
+                                dismiss()
+                            }
+                        }
                     }) {
                         VStack(alignment: .leading) {
                             Text(result.title)

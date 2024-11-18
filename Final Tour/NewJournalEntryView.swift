@@ -44,6 +44,17 @@ struct NewJournalEntryView: View {
                     if let journey = importedJourney {
                         Section {
                             VStack(spacing: 15) {
+                                // Add Journey Title
+                                HStack {
+                                    Text(journey.title)
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                    Spacer()
+                                    Text(journey.date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                
                                 // Stats Grid
                                 LazyVGrid(columns: [
                                     GridItem(.flexible()),

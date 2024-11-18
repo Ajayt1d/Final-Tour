@@ -127,6 +127,17 @@ struct JournalEntryDetailView: View {
                     // Imported Ride Stats Card
                     if let importedJourney = entry.importedJourney {
                         VStack(spacing: 15) {
+                            // Add Journey Title
+                            HStack {
+                                Text(importedJourney.title)
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Text(importedJourney.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            
                             // Stats Grid
                             LazyVGrid(columns: [
                                 GridItem(.flexible()),

@@ -1,150 +1,268 @@
 import SwiftUI
+import UIKit
 
 struct JournalEntryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var entry: JournalEntry
     @State private var isEditing = false
+    @State private var showingImportSheet = false
+    @State private var showingImagePicker = false
+    @State private var showingDeleteAlert = false
+    @State private var showingFullScreenImage = false
+    @State private var selectedImageIndex = 0
     @State private var editedTitle: String
     @State private var editedContent: String
-    @State private var editedLocation: String
     @State private var editedMood: EntryMood
+    @State private var editedImages: [UIImage]
+    @StateObject private var journeyStore = JourneyStore.shared
+    var onDelete: (() -> Void)?
     
-    init(entry: Binding<JournalEntry>) {
+    init(entry: Binding<JournalEntry>, onDelete: (() -> Void)? = nil) {
         self._entry = entry
+        self.onDelete = onDelete
         self._editedTitle = State(initialValue: entry.wrappedValue.title)
         self._editedContent = State(initialValue: entry.wrappedValue.content)
-        self._editedLocation = State(initialValue: entry.wrappedValue.location)
         self._editedMood = State(initialValue: entry.wrappedValue.mood)
+        self._editedImages = State(initialValue: entry.wrappedValue.images ?? [])
     }
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if isEditing {
-                    editingView
+                    VStack(alignment: .leading, spacing: 20) {
+                        TextField("Title", text: $editedTitle)
+                            .font(.system(size: 24, weight: .bold))
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        HStack {
+                            ForEach(EntryMood.allCases, id: \.self) { mood in
+                                Button(action: {
+                                    editedMood = mood
+                                }) {
+                                    Text(mood.emoji)
+                                        .font(.system(size: 30))
+                                        .opacity(editedMood == mood ? 1.0 : 0.5)
+                                }
+                            }
+                            Spacer()
+                            Button(action: {
+                                showingImportSheet = true
+                            }) {
+                                Label("Import Ride", systemImage: "square.and.arrow.down")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        
+                        TextEditor(text: $editedContent)
+                            .frame(minHeight: 200)
+                            .padding(8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                        
+                        // Photo Section
+                        if !editedImages.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(editedImages.indices, id: \.self) { index in
+                                        Image(uiImage: editedImages[index])
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 100, height: 100)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .overlay(
+                                                Button(action: {
+                                                    editedImages.remove(at: index)
+                                                }) {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .foregroundColor(.white)
+                                                        .background(Color.black.opacity(0.5))
+                                                        .clipShape(Circle())
+                                                }
+                                                .padding(4),
+                                                alignment: .topTrailing
+                                            )
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                            }
+                        }
+                        
+                        Button(action: {
+                            showingImagePicker = true
+                        }) {
+                            Label("Add Photos", systemImage: "photo.on.rectangle.angled")
+                        }
+                    }
                 } else {
-                    viewingView
+                    // Title
+                    Text(entry.title)
+                        .font(.system(size: 24, weight: .bold))
+                    
+                    // Date
+                    Text(entry.date.formatted(date: .long, time: .shortened))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    // Mood
+                    Text(entry.mood.emoji)
+                        .font(.system(size: 30))
+                    
+                    // Content
+                    Text(entry.content)
+                        .lineSpacing(8)
+                    
+                    // Images below content
+                    if let images = entry.images, !images.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Photos")
+                                .font(.headline)
+                                .padding(.top, 8)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(images.indices, id: \.self) { index in
+                                        Image(uiImage: images[index])
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 150, height: 150)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .onTapGesture {
+                                                selectedImageIndex = index
+                                                showingFullScreenImage = true
+                                            }
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                            }
+                        }
+                    }
                 }
             }
             .padding()
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                if !isEditing {
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isEditing ? "Done" : "Edit") {
                     if isEditing {
-                        saveChanges()
+                        entry.title = editedTitle
+                        entry.content = editedContent
+                        entry.mood = editedMood
+                        entry.images = editedImages.isEmpty ? nil : editedImages
                     }
                     isEditing.toggle()
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
-    }
-    
-    private var editingView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            TextField("Title", text: $editedTitle)
-                .font(.title)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding(.bottom, 8)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Location", systemImage: "location.fill")
-                    .foregroundColor(.secondary)
-                TextField("Location", text: $editedLocation)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
+        .alert("Delete Entry", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                onDelete?()
+                dismiss()
             }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Mood", systemImage: "face.smiling")
-                    .foregroundColor(.secondary)
-                Picker("Mood", selection: $editedMood) {
-                    ForEach(EntryMood.allCases, id: \.self) { mood in
-                        Text(mood.rawValue).tag(mood)
+        } message: {
+            Text("Are you sure you want to delete this entry?")
+        }
+        .sheet(isPresented: $showingImportSheet) {
+            NavigationView {
+                List {
+                    ForEach(journeyStore.journeys) { journey in
+                        Button(action: {
+                            importJourney(journey)
+                            showingImportSheet = false
+                        }) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(journey.title)
+                                    .font(.headline)
+                                HStack {
+                                    Text(journey.date.formatted(date: .abbreviated, time: .shortened))
+                                    Text("•")
+                                    Text(journey.distance)
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
+                .navigationTitle("Select Ride")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Cancel") {
+                            showingImportSheet = false
+                        }
+                    }
+                }
             }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Journal Entry", systemImage: "text.book.closed")
-                    .foregroundColor(.secondary)
-                TextEditor(text: $editedContent)
-                    .frame(minHeight: 200)
-                    .padding(8)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(8)
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(selectedImages: $editedImages)
+        }
+        .fullScreenCover(isPresented: $showingFullScreenImage) {
+            ImageViewer(images: entry.images ?? [], currentIndex: selectedImageIndex) {
+                showingFullScreenImage = false
             }
         }
     }
     
-    private var viewingView: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            // Header
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(entry.title)
-                        .font(.title)
-                        .bold()
-                    Spacer()
-                    Text(entry.mood.emoji)
-                        .font(.title)
-                }
-                
-                Text(entry.date.formatted(date: .long, time: .shortened))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.bottom, 8)
-            
-            // Location
-            HStack {
-                Image(systemName: "location.fill")
-                    .foregroundColor(.blue)
-                Text(entry.location)
-                    .font(.headline)
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
-            .background(Color(.systemBackground))
-            .cornerRadius(10)
-            
-            // Content
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Journal Entry")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                
-                Text(entry.content)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(10)
-            }
-            
-            if entry.hasPhotos {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Photos")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Photo gallery coming soon...")
-                        .foregroundColor(.secondary)
-                        .padding(16)
-                        .frame(maxWidth: .infinity)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(10)
-                }
-            }
+    private func importJourney(_ journey: Journey) {
+        let rideSummary = """
+        🚲 \(journey.distance) in \(journey.location)
+        \(journey.weather.emoji) \(journey.mood.emoji) \(journey.road.emoji)
+        """
+        
+        if editedContent.isEmpty {
+            editedContent = rideSummary
+        } else {
+            editedContent += "\n\n" + rideSummary
         }
     }
+}
+
+struct ImageViewer: View {
+    let images: [UIImage]
+    @State private var currentIndex: Int
+    let dismiss: () -> Void
     
-    private func saveChanges() {
-        entry.title = editedTitle
-        entry.content = editedContent
-        entry.location = editedLocation
-        entry.mood = editedMood
+    init(images: [UIImage], currentIndex: Int, dismiss: @escaping () -> Void) {
+        self.images = images
+        self._currentIndex = State(initialValue: currentIndex)
+        self.dismiss = dismiss
+    }
+    
+    var body: some View {
+        TabView(selection: $currentIndex) {
+            ForEach(images.indices, id: \.self) { index in
+                Image(uiImage: images[index])
+                    .resizable()
+                    .scaledToFit()
+                    .tag(index)
+            }
+        }
+        .tabViewStyle(.page)
+        .background(Color.black)
+        .overlay(
+            Button(action: dismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .padding()
+            }
+            .padding(),
+            alignment: .topTrailing
+        )
     }
 }
 

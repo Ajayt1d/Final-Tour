@@ -8,17 +8,24 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var journeyStore = JourneyStore.shared
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
             JourneyView()
+                .tabItem {
+                    Label("Journeys", systemImage: "map")
+                }
                 .tag(0)
             
             JournalView()
                 .tag(1)
             
-            Text("Directions")  // Placeholder for now
+            RouteNavigationView()
+                .tabItem {
+                    Label("Navigate", systemImage: "location.circle.fill")
+                }
                 .tag(2)
             
             Text("Memories")    // Placeholder for now

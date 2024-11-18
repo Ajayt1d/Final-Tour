@@ -16,6 +16,7 @@ struct JourneyDetailView: View {
     var isFromJourneyMenu: Bool
     var onSave: ((Journey) -> Void)?
     var onDelete: (() -> Void)?
+    @State private var showingShareSheet = false
     
     init(journey: Binding<Journey>, 
          isNewJourney: Bool = false, 
@@ -74,6 +75,14 @@ struct JourneyDetailView: View {
                     }
                 }
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingShareSheet = true
+                }) {
+                    Label("Share Journey", systemImage: "square.and.arrow.up")
+                        .foregroundColor(.blue)
+                }
+            }
         }
         .alert("Delete Journey", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }
@@ -81,6 +90,19 @@ struct JourneyDetailView: View {
                 onDelete?()
                 dismiss()
             }
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ShareLink(
+                item: """
+                Journey: \(journey.title)
+                From: \(journey.location)
+                Distance: \(journey.distance)
+                Duration: \(journey.duration ?? "")
+                Weather: \(journey.weather.rawValue)
+                Mood: \(journey.mood.rawValue)
+                """,
+                preview: SharePreview(journey.title)
+            )
         }
         .onChange(of: isEditing) { newValue in
             if !newValue {

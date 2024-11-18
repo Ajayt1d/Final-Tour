@@ -2,86 +2,119 @@ import SwiftUI
 import MapKit
 
 struct RouteNavigationView: View {
-    @State private var startLocation: String = ""
-    @State private var endLocation: String = ""
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275),
+        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+    )
+    @StateObject private var locationManager = LocationManager()
+    @State private var startLocation = ""
+    @State private var endLocation = ""
     @State private var isSearchingStart = false
     @State private var isSearchingEnd = false
     @State private var showingLocationOptions = false
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Start Location Section
-            VStack(alignment: .leading) {
-                Text("Start Location")
-                    .font(.headline)
-                
-                Button(action: {
-                    showingLocationOptions = true
-                }) {
+        ZStack {
+            MapView(locationManager: locationManager, region: $region)
+                .ignoresSafeArea()
+            
+            // Search Bars Overlay at top
+            VStack {
+                VStack(spacing: 12) {
+                    // Start Location
+                    Button(action: {
+                        showingLocationOptions = true
+                    }) {
+                        HStack {
+                            Image(systemName: "location.circle.fill")
+                                .foregroundColor(.blue)
+                            Text(startLocation.isEmpty ? "Choose start location" : startLocation)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(10)
+                    }
+                    
+                    // End Location
                     HStack {
-                        Image(systemName: "location.circle.fill")
-                        Text(startLocation.isEmpty ? "Choose start location" : startLocation)
-                        Spacer()
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "mappin.circle.fill")
+                            .foregroundColor(.red)
+                        TextField("Search destination", text: $endLocation)
+                            .onTapGesture {
+                                isSearchingEnd = true
+                            }
                     }
                     .padding()
-                    .background(Color(.systemGray6))
+                    .background(.ultraThinMaterial)
                     .cornerRadius(10)
                 }
-            }
-            
-            // End Location Section
-            VStack(alignment: .leading) {
-                Text("End Location")
-                    .font(.headline)
+                .padding()
                 
-                TextField("Search destination", text: $endLocation)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .onTapGesture {
-                        isSearchingEnd = true
+                Spacer()
+                
+                // Control Buttons
+                HStack(spacing: 20) {
+                    Button(action: {
+                        // Add stop action
+                    }) {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                VStack {
+                                    Image(systemName: "plus.circle.fill")
+                                    Text("Add Stop")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.white)
+                            )
                     }
-            }
-            
-            Spacer()
-            
-            // Bottom Buttons
-            HStack(spacing: 15) {
-                Button(action: {
-                    // Add stop action
-                }) {
-                    VStack {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Add Stop")
+                    
+                    Button(action: {
+                        // Navigate action
+                    }) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                VStack {
+                                    Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
+                                    Text("Navigate")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.white)
+                            )
+                    }
+                    
+                    Button(action: {
+                        // Share action
+                    }) {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 70, height: 70)
+                            .overlay(
+                                VStack {
+                                    Image(systemName: "square.and.arrow.up.circle.fill")
+                                    Text("Share")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.white)
+                            )
                     }
                 }
-                
-                Button(action: {
-                    // Navigate action
-                }) {
-                    VStack {
-                        Image(systemName: "arrow.triangle.turn.up.right.circle.fill")
-                        Text("Navigate")
-                    }
-                }
-                
-                Button(action: {
-                    // Share action
-                }) {
-                    VStack {
-                        Image(systemName: "square.and.arrow.up.circle.fill")
-                        Text("Share")
-                    }
-                }
+                .padding(.bottom, 30)
             }
-            .padding()
         }
-        .padding()
         .actionSheet(isPresented: $showingLocationOptions) {
             ActionSheet(
                 title: Text("Choose Start Location"),
                 buttons: [
                     .default(Text("Use Current Location")) {
-                        // Handle current location
+                        startLocation = "Current Location"
                     },
                     .default(Text("Search Location")) {
                         isSearchingStart = true
@@ -99,6 +132,7 @@ struct RouteNavigationView: View {
     }
 }
 
+// Add the search view
 struct RouteLocationSearchView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selectedLocation: String
@@ -126,6 +160,11 @@ struct RouteLocationSearchView: View {
                         dismiss()
                     }
                 }
+            }
+            .onChange(of: searchText) { newValue in
+                // Here we'll add actual location search later
+                searchResults = ["London", "Manchester", "Birmingham", "Edinburgh"]
+                    .filter { $0.lowercased().contains(newValue.lowercased()) }
             }
         }
     }

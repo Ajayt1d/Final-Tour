@@ -22,6 +22,7 @@ struct ActiveRideView: View {
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
     @State private var trackingMode = MapUserTrackingMode.follow
+    @State private var isTrackingStarted = false
     
     var body: some View {
         ZStack {
@@ -97,14 +98,19 @@ struct ActiveRideView: View {
             }
         }
         .onAppear {
-            locationManager.startTracking()
+            // Request location permissions first
+            locationManager.requestPermission()
             
-            // If we have pending navigation, open Maps after a delay
-            if pendingNavigation, let action = navigationAction {
-                // Wait for tracking to fully start
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    action()
-                }
+            // Initialize tracking
+            initializeTracking()
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
+        .onChange(of: isTrackingStarted) { newValue in
+            // Double check tracking is active
+            if newValue && !locationManager.isTracking {
+                locationManager.startTracking()
             }
         }
         .onChange(of: locationManager.currentLocation) { location in
@@ -211,6 +217,31 @@ struct ActiveRideView: View {
         let hours = elapsedTime / 3600
         let averageSpeed = hours > 0 ? distanceInMiles / hours : 0
         return String(format: "%.1f mph", averageSpeed)
+    }
+    
+    private func initializeTracking() {
+        // Start the location tracking first
+        locationManager.startTracking()
+        startTimer() // Start the main timer for elapsed time
+        
+        // Create a separate timer for navigation check
+        if pendingNavigation {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                // Check if tracking is active
+                if locationManager.isTracking {
+                    // Execute navigation
+                    navigationAction?()
+                } else {
+                    // Try starting tracking again
+                    locationManager.startTracking()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        if locationManager.isTracking {
+                            navigationAction?()
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

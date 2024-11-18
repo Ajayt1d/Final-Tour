@@ -310,16 +310,8 @@ struct JourneyDetailView: View {
             
             // Photos Section
             VStack(alignment: .leading) {
-                HStack {
-                    Text("Photos")
-                        .font(.headline)
-                    Spacer()
-                    Button(action: {
-                        showingImagePicker = true
-                    }) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                    }
-                }
+                Text("Photos")
+                    .font(.headline)
                 
                 if let images = journey.images, !images.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -331,18 +323,6 @@ struct JourneyDetailView: View {
                                         .scaledToFill()
                                         .frame(width: 100, height: 100)
                                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        .overlay(
-                                            Button(action: {
-                                                journey.images?.remove(at: index)
-                                            }) {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundColor(.white)
-                                                    .background(Color.black.opacity(0.6))
-                                                    .clipShape(Circle())
-                                            }
-                                            .padding(5),
-                                            alignment: .topTrailing
-                                        )
                                 }
                             }
                         }

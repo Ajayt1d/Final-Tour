@@ -19,6 +19,7 @@ struct JourneyDetailView: View {
     @State private var showingShareSheet = false
     @State private var showingImagePicker = false
     @State private var shareImage: UIImage?
+    @State private var shareItems: [Any] = []
     
     init(journey: Binding<Journey>, 
          isNewJourney: Bool = false, 
@@ -79,7 +80,7 @@ struct JourneyDetailView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    shareJourney()
+                    prepareAndShare()
                 }) {
                     Image(systemName: "square.and.arrow.up")
                 }
@@ -92,11 +93,9 @@ struct JourneyDetailView: View {
                 dismiss()
             }
         }
-        .sheet(isPresented: $showingShareSheet, content: {
-            if let image = shareImage {
-                ActivityViewController(activityItems: [image])
-            }
-        })
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(activityItems: shareItems)
+        }
         .sheet(isPresented: $showingImagePicker) {
             JourneyImagePicker(selectedImages: Binding(
                 get: { journey.images ?? [] },
@@ -124,10 +123,16 @@ struct JourneyDetailView: View {
         }
     }
     
-    private func shareJourney() {
-        let renderer = ImageRenderer(content: JourneyStatsCard(journey: journey))
+    private func prepareAndShare() {
+        let renderer = ImageRenderer(content: 
+            JourneyStatsCard(journey: journey)
+                .environment(\.colorScheme, .light)
+        )
+        renderer.scale = 3.0
+        
         if let image = renderer.uiImage {
-            shareImage = image
+            let text = "Check out my ride with Final Tour! 🏍"
+            shareItems = [text, image]
             showingShareSheet = true
         }
     }
@@ -460,11 +465,15 @@ struct RoadConditionButton: View {
 }
 
 // Add this struct for sharing
-struct ActivityViewController: UIViewControllerRepresentable {
+struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(
+            activityItems: activityItems,
+            applicationActivities: nil
+        )
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

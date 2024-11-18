@@ -3,6 +3,10 @@ import CoreLocation
 import MapKit
 
 struct ActiveRideView: View {
+    let onComplete: (Journey) -> Void
+    var pendingNavigation: Bool = false
+    var navigationAction: (() -> Void)? = nil
+    
     @Environment(\.dismiss) private var dismiss
     @StateObject private var locationManager = LocationManager()
     @StateObject private var weatherManager = WeatherManager()
@@ -18,8 +22,6 @@ struct ActiveRideView: View {
     @State private var elapsedTime: TimeInterval = 0
     @State private var timer: Timer?
     @State private var trackingMode = MapUserTrackingMode.follow
-    
-    var onJourneyComplete: (Journey) -> Void
     
     var body: some View {
         ZStack {
@@ -95,7 +97,15 @@ struct ActiveRideView: View {
             }
         }
         .onAppear {
-            startRide()
+            locationManager.startTracking()
+            
+            // If we have pending navigation, open Maps after a delay
+            if pendingNavigation, let action = navigationAction {
+                // Wait for tracking to fully start
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    action()
+                }
+            }
         }
         .onChange(of: locationManager.currentLocation) { location in
             if let location = location {
@@ -128,7 +138,7 @@ struct ActiveRideView: View {
                         onSave: { _ in
                             showingJourneyDetail = false
                             if let journey = currentJourney {
-                                onJourneyComplete(journey)
+                                onComplete(journey)
                                 dismiss()
                             }
                         }
@@ -136,11 +146,6 @@ struct ActiveRideView: View {
                 }
             }
         }
-    }
-    
-    private func startRide() {
-        locationManager.startTracking()
-        startTimer()
     }
     
     private func pauseRide() {

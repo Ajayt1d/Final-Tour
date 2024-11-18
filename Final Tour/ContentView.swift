@@ -14,24 +14,18 @@ struct ContentView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             JourneyView()
-                .tabItem {
-                    Label("Journeys", systemImage: "map")
-                }
                 .tag(0)
             
             JournalView()
                 .tag(1)
             
             RouteNavigationView()
-                .tabItem {
-                    Label("Navigate", systemImage: "location.circle.fill")
-                }
                 .tag(2)
             
-            Text("Memories")    // Placeholder for now
+            Text("Memories")
                 .tag(3)
             
-            Text("Profile")     // Placeholder for now
+            Text("Profile")
                 .tag(4)
         }
         .overlay(

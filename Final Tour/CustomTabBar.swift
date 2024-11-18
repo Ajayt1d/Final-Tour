@@ -5,53 +5,59 @@ struct CustomTabBar: View {
     
     var body: some View {
         HStack(spacing: 0) {
+            Spacer()
+            
+            // Journey Tab
             TabBarButton(
-                title: "Journey",
-                icon: "map",
+                icon: "figure.walk",
+                text: "Journey",
                 isSelected: selectedTab == 0
             ) {
                 selectedTab = 0
             }
             
+            Spacer()
+            
+            // Journal Tab
             TabBarButton(
-                title: "Journal",
-                icon: "book",
+                icon: "book.fill",
+                text: "Journal",
                 isSelected: selectedTab == 1
             ) {
                 selectedTab = 1
             }
             
+            Spacer()
+            
+            // Navigation Tab
             TabBarButton(
-                title: "Directions",
-                icon: "location.north",
+                icon: "map.fill",
+                text: "Navigation",
                 isSelected: selectedTab == 2
             ) {
                 selectedTab = 2
             }
             
+            Spacer()
+            
+            // Profile Tab
             TabBarButton(
-                title: "Memories",
-                icon: "photo.on.rectangle",
+                icon: "person.fill",
+                text: "Profile",
                 isSelected: selectedTab == 3
             ) {
                 selectedTab = 3
             }
             
-            TabBarButton(
-                title: "Profile",
-                icon: "person",
-                isSelected: selectedTab == 4
-            ) {
-                selectedTab = 4
-            }
+            Spacer()
         }
-        .padding(.top, 10)
+        .padding(.vertical, 12)
     }
 }
 
 struct TabBarButton: View {
-    let title: String
     let icon: String
+    let text: String
     let isSelected: Bool
     let action: () -> Void
     
@@ -60,7 +66,7 @@ struct TabBarButton: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 24))
-                Text(title)
+                Text(text)
                     .font(.caption2)
             }
             .frame(maxWidth: .infinity)

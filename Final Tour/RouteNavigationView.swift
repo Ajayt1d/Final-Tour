@@ -164,7 +164,7 @@ struct RouteNavigationView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 30)
+                .padding(.bottom, -55)
             }
         }
         .alert("Start Navigation", isPresented: $showingNavigationOptions) {

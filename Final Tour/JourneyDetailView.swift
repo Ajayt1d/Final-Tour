@@ -18,6 +18,7 @@ struct JourneyDetailView: View {
     var onDelete: (() -> Void)?
     @State private var showingShareSheet = false
     @State private var showingImagePicker = false
+    @State private var shareImage: UIImage?
     
     init(journey: Binding<Journey>, 
          isNewJourney: Bool = false, 
@@ -78,10 +79,9 @@ struct JourneyDetailView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    showingShareSheet = true
+                    shareJourney()
                 }) {
-                    Label("Share Journey", systemImage: "square.and.arrow.up")
-                        .foregroundColor(.blue)
+                    Image(systemName: "square.and.arrow.up")
                 }
             }
         }
@@ -92,19 +92,11 @@ struct JourneyDetailView: View {
                 dismiss()
             }
         }
-        .sheet(isPresented: $showingShareSheet) {
-            ShareLink(
-                item: """
-                Journey: \(journey.title)
-                From: \(journey.location)
-                Distance: \(journey.distance)
-                Duration: \(journey.duration ?? "")
-                Weather: \(journey.weather.rawValue)
-                Mood: \(journey.mood.rawValue)
-                """,
-                preview: SharePreview(journey.title)
-            )
-        }
+        .sheet(isPresented: $showingShareSheet, content: {
+            if let image = shareImage {
+                ActivityViewController(activityItems: [image])
+            }
+        })
         .sheet(isPresented: $showingImagePicker) {
             JourneyImagePicker(selectedImages: Binding(
                 get: { journey.images ?? [] },
@@ -129,6 +121,14 @@ struct JourneyDetailView: View {
             journey.weather = editedWeather
             journey.isCompleted = true
             onSave?(journey)
+        }
+    }
+    
+    private func shareJourney() {
+        let renderer = ImageRenderer(content: JourneyStatsCard(journey: journey))
+        if let image = renderer.uiImage {
+            shareImage = image
+            showingShareSheet = true
         }
     }
     
@@ -457,4 +457,15 @@ struct RoadConditionButton: View {
             )
         }
     }
+}
+
+// Add this struct for sharing
+struct ActivityViewController: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 } 

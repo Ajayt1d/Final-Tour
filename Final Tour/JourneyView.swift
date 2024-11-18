@@ -31,15 +31,12 @@ struct JourneyView: View {
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach($journeyStore.journeys) { $journey in
-                        JourneyCard(
-                            journey: $journey,
-                            onDelete: {
-                                if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
-                                    journeyStore.journeys.remove(at: index)
-                                    journeyStore.save()
-                                }
+                        JourneyCard(journey: $journey, onDelete: {
+                            if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
+                                journeyStore.journeys.remove(at: index)
+                                journeyStore.save()
                             }
-                        )
+                        })
                     }
                 }
                 .padding()
@@ -64,7 +61,7 @@ struct JourneyView: View {
                     .cornerRadius(25)
                     .padding(.horizontal)
             }
-            .padding(.vertical, 10)
+            .padding(.bottom, -55)
         }
         .sheet(isPresented: $showingPreRideChecklist) {
             PreRideChecklistView(onStartRide: {

@@ -22,15 +22,35 @@ struct NewJournalEntryView: View {
                     }
                     
                     Section {
-                        HStack {
-                            ForEach(EntryMood.allCases, id: \.self) { mood in
-                                Button(action: {
-                                    self.mood = mood
-                                }) {
-                                    Text(mood.emoji)
-                                        .font(.system(size: 30))
-                                        .opacity(self.mood == mood ? 1.0 : 0.5)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Mood")
+                                .font(.headline)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(EntryMood.allCases, id: \.self) { mood in
+                                        Button(action: {
+                                            self.mood = mood
+                                        }) {
+                                            VStack(spacing: 4) {
+                                                Text(mood.emoji)
+                                                    .font(.title2)
+                                                Text(mood.rawValue)
+                                                    .font(.caption)
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(self.mood == mood ? mood.color.opacity(0.2) : Color.clear)
+                                            .foregroundColor(self.mood == mood ? mood.color : .gray)
+                                            .cornerRadius(10)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(self.mood == mood ? mood.color : Color.gray.opacity(0.3), lineWidth: 1)
+                                            )
+                                        }
+                                    }
                                 }
+                                .padding(.vertical, 5)
                             }
                         }
                     }

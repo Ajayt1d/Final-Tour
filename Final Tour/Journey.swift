@@ -79,20 +79,9 @@ enum Mood: String, CaseIterable, Codable {
     case tired = "Tired"
     case rough = "Rough"
     
-    var icon: String {
-        switch self {
-        case .amazing: return "star.fill"
-        case .happy: return "heart.fill"
-        case .good: return "hand.thumbsup.fill"
-        case .meh: return "face.smiling"
-        case .tired: return "zzz"
-        case .rough: return "hand.thumbsdown.fill"
-        }
-    }
-    
     var emoji: String {
         switch self {
-        case .amazing: return "💫"
+        case .amazing: return "🤩"
         case .happy: return "😊"
         case .good: return "😌"
         case .meh: return "😐"
@@ -104,10 +93,11 @@ enum Mood: String, CaseIterable, Codable {
     var color: Color {
         switch self {
         case .amazing: return .yellow
-        case .happy: return .pink
+        case .happy: return .yellow
         case .good: return .green
         case .meh: return .orange
-        case .tired, .rough: return .red
+        case .tired: return .orange
+        case .rough: return .red
         }
     }
 }

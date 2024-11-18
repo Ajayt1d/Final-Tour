@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import SwiftUI
 
 struct JournalEntry: Identifiable {
     let id: UUID
@@ -52,12 +53,23 @@ enum EntryMood: String, CaseIterable, Codable {
     
     var emoji: String {
         switch self {
-        case .amazing: return "💫"
+        case .amazing: return "🤩"
         case .happy: return "😊"
         case .good: return "😌"
         case .meh: return "😐"
         case .tired: return "😮‍💨"
         case .rough: return "😫"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .amazing: return .yellow
+        case .happy: return .yellow
+        case .good: return .green
+        case .meh: return .orange
+        case .tired: return .orange
+        case .rough: return .red
         }
     }
 } 

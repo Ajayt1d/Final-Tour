@@ -27,94 +27,78 @@ struct JournalEntryDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if isEditing {
-                    VStack(alignment: .leading, spacing: 20) {
-                        TextField("Title", text: $editedTitle)
-                            .font(.system(size: 24, weight: .bold))
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
-                        HStack {
-                            ForEach(EntryMood.allCases, id: \.self) { mood in
-                                Button(action: {
-                                    editedMood = mood
-                                }) {
-                                    Text(mood.emoji)
-                                        .font(.system(size: 30))
-                                        .opacity(editedMood == mood ? 1.0 : 0.5)
-                                }
-                            }
-                            Spacer()
-                            Button(action: {
-                                showingImportSheet = true
-                            }) {
-                                Label("Import Ride", systemImage: "square.and.arrow.down")
-                                    .foregroundColor(.blue)
-                            }
+        VStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Title & Date Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        if isEditing {
+                            TextField("Title", text: $editedTitle)
+                                .font(.title)
+                                .fontWeight(.bold)
+                        } else {
+                            Text(entry.title)
+                                .font(.title)
+                                .fontWeight(.bold)
                         }
                         
-                        TextEditor(text: $editedContent)
-                            .frame(minHeight: 200)
-                            .padding(8)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                        Text(entry.date.formatted(date: .long, time: .shortened))
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(15)
+                    
+                    // Mood Section
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Mood")
+                            .font(.headline)
                         
-                        // Photo Section
-                        if !editedImages.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(editedImages.indices, id: \.self) { index in
-                                        Image(uiImage: editedImages[index])
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 100, height: 100)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .overlay(
-                                                Button(action: {
-                                                    editedImages.remove(at: index)
-                                                }) {
-                                                    Image(systemName: "xmark.circle.fill")
-                                                        .foregroundColor(.white)
-                                                        .background(Color.black.opacity(0.5))
-                                                        .clipShape(Circle())
-                                                }
-                                                .padding(4),
-                                                alignment: .topTrailing
-                                            )
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(EntryMood.allCases, id: \.self) { mood in
+                                    Button(action: {
+                                        if isEditing {
+                                            editedMood = mood
+                                        }
+                                    }) {
+                                        VStack(spacing: 4) {
+                                            Text(mood.emoji)
+                                                .font(.title2)
+                                            Text(mood.rawValue)
+                                                .font(.caption)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(isEditing ? (editedMood == mood ? mood.color.opacity(0.2) : Color.clear) : (entry.mood == mood ? mood.color.opacity(0.2) : Color.clear))
+                                        .foregroundColor(isEditing ? (editedMood == mood ? mood.color : .gray) : (entry.mood == mood ? mood.color : .gray))
+                                        .cornerRadius(10)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(isEditing ? (editedMood == mood ? mood.color : Color.gray.opacity(0.3)) : (entry.mood == mood ? mood.color : Color.gray.opacity(0.3)), lineWidth: 1)
+                                        )
                                     }
+                                    .disabled(!isEditing)
                                 }
-                                .padding(.vertical, 8)
                             }
-                        }
-                        
-                        Button(action: {
-                            showingImagePicker = true
-                        }) {
-                            Label("Add Photos", systemImage: "photo.on.rectangle.angled")
+                            .padding(.vertical, 5)
                         }
                     }
-                } else {
-                    // Title
-                    Text(entry.title)
-                        .font(.system(size: 24, weight: .bold))
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(15)
                     
-                    // Date
-                    Text(entry.date.formatted(date: .long, time: .shortened))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    // Mood
-                    Text(entry.mood.emoji)
-                        .font(.system(size: 30))
-                    
-                    // Content/Notes section
-                    VStack(alignment: .leading) {
+                    // Content Section
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("Comments")
                             .font(.headline)
+                        
                         if isEditing {
                             TextEditor(text: $editedContent)
-                                .frame(minHeight: 200)
+                                .frame(minHeight: 100)
                                 .padding(8)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(8)
@@ -123,8 +107,12 @@ struct JournalEntryDetailView: View {
                                 .lineSpacing(8)
                         }
                     }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(15)
                     
-                    // Imported Ride Stats Card
+                    // Imported Journey Stats (if available)
                     if let importedJourney = entry.importedJourney {
                         VStack(spacing: 15) {
                             // Add Journey Title
@@ -180,22 +168,77 @@ struct JournalEntryDetailView: View {
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(15)
                     }
+                    
+                    // Photos Section
+                    if !editedImages.isEmpty || (entry.images?.isEmpty == false) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Photos")
+                                .font(.headline)
+                            
+                            if !editedImages.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 12) {
+                                        ForEach(editedImages.indices, id: \.self) { index in
+                                            Image(uiImage: editedImages[index])
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 100, height: 100)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .overlay(
+                                                    Button(action: {
+                                                        editedImages.remove(at: index)
+                                                    }) {
+                                                        Image(systemName: "xmark.circle.fill")
+                                                            .foregroundColor(.white)
+                                                            .background(Color.black.opacity(0.5))
+                                                            .clipShape(Circle())
+                                                    }
+                                                    .padding(4),
+                                                    alignment: .topTrailing
+                                                )
+                                        }
+                                    }
+                                    .padding(.vertical, 8)
+                                }
+                            }
+                            
+                            Button(action: {
+                                showingImagePicker = true
+                            }) {
+                                Label("Add Photos", systemImage: "photo.on.rectangle.angled")
+                            }
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(15)
+                    }
                 }
+                .padding()
             }
-            .padding()
+            
+            // Delete Button
+            if !isEditing {
+                Button(action: {
+                    showingDeleteAlert = true
+                }) {
+                    HStack {
+                        Image(systemName: "trash.fill")
+                        Text("Delete Entry")
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.red)
+                    .cornerRadius(25)
+                    .padding(.horizontal)
+                }
+                .padding(.vertical, 10)
+            }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                if !isEditing {
-                    Button(role: .destructive) {
-                        showingDeleteAlert = true
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                }
-            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(isEditing ? "Done" : "Edit") {
                     if isEditing {

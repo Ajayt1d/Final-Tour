@@ -18,10 +18,8 @@ struct RouteNavigationView: View {
             MapView(locationManager: locationManager, region: $region)
                 .ignoresSafeArea()
             
-            // Search Bars Overlay at top
             VStack {
                 VStack(spacing: 12) {
-                    // Start Location
                     Button(action: {
                         showingLocationOptions = true
                     }) {
@@ -39,30 +37,33 @@ struct RouteNavigationView: View {
                         .cornerRadius(10)
                     }
                     
-                    // End Location
-                    HStack {
-                        Image(systemName: "mappin.circle.fill")
-                            .foregroundColor(.red)
-                        TextField("Search destination", text: $endLocation)
-                            .onTapGesture {
-                                isSearchingEnd = true
-                            }
+                    Button(action: {
+                        isSearchingEnd = true
+                    }) {
+                        HStack {
+                            Image(systemName: "mappin.circle.fill")
+                                .foregroundColor(.red)
+                            Text(endLocation.isEmpty ? "Search destination" : endLocation)
+                                .foregroundColor(endLocation.isEmpty ? .gray : .primary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(10)
                     }
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(10)
                 }
                 .padding()
                 
                 Spacer()
                 
-                // Control Buttons
-                HStack(spacing: 20) {
+                HStack(spacing: 40) {
                     Button(action: {
                         // Add stop action
                     }) {
                         Circle()
-                            .fill(Color.blue)
+                            .fill(startLocation.isEmpty || endLocation.isEmpty ? Color.gray : Color.blue)
                             .frame(width: 70, height: 70)
                             .overlay(
                                 VStack {
@@ -73,6 +74,7 @@ struct RouteNavigationView: View {
                                 .foregroundColor(.white)
                             )
                     }
+                    .disabled(startLocation.isEmpty || endLocation.isEmpty)
                     
                     Button(action: {
                         // Navigate action
@@ -106,6 +108,7 @@ struct RouteNavigationView: View {
                             )
                     }
                 }
+                .padding(.horizontal)
                 .padding(.bottom, 30)
             }
         }
@@ -128,44 +131,6 @@ struct RouteNavigationView: View {
         }
         .sheet(isPresented: $isSearchingEnd) {
             RouteLocationSearchView(selectedLocation: $endLocation)
-        }
-    }
-}
-
-// Add the search view
-struct RouteLocationSearchView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedLocation: String
-    @State private var searchText = ""
-    @State private var searchResults: [String] = []
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(searchResults, id: \.self) { location in
-                    Button(action: {
-                        selectedLocation = location
-                        dismiss()
-                    }) {
-                        Text(location)
-                    }
-                }
-            }
-            .searchable(text: $searchText)
-            .navigationTitle("Search Location")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-            .onChange(of: searchText) { newValue in
-                // Here we'll add actual location search later
-                searchResults = ["London", "Manchester", "Birmingham", "Edinburgh"]
-                    .filter { $0.lowercased().contains(newValue.lowercased()) }
-            }
         }
     }
 } 

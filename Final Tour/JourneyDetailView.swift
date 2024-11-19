@@ -80,7 +80,8 @@ struct JourneyDetailView: View {
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
-                    prepareAndShare()
+                    prepareShareImage()
+                    showingShareSheet = true
                 }) {
                     Image(systemName: "square.and.arrow.up")
                 }
@@ -94,7 +95,9 @@ struct JourneyDetailView: View {
             }
         }
         .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(activityItems: shareItems)
+            if let image = shareImage {
+                ShareSheet(items: [image])
+            }
         }
         .sheet(isPresented: $showingImagePicker) {
             JourneyImagePicker(selectedImages: Binding(
@@ -123,17 +126,21 @@ struct JourneyDetailView: View {
         }
     }
     
-    private func prepareAndShare() {
-        let renderer = ImageRenderer(content: 
-            JourneyStatsCard(journey: journey)
-                .environment(\.colorScheme, .light)
-        )
+    private func prepareShareImage() {
+        let statsCard = JourneyStatsCard(journey: journey)
+            .frame(width: UIScreen.main.bounds.width - 40)
+            .padding(20)
+            .background(Color.white)
+            .environment(\.colorScheme, .light)
+        
+        let renderer = ImageRenderer(content: statsCard)
         renderer.scale = 3.0
         
-        if let image = renderer.uiImage {
-            let text = "Check out my ride with Final Tour! 🏍"
-            shareItems = [text, image]
-            showingShareSheet = true
+        if let uiImage = renderer.uiImage {
+            if let pngData = uiImage.pngData(),
+               let finalImage = UIImage(data: pngData) {
+                shareImage = finalImage
+            }
         }
     }
     
@@ -466,13 +473,21 @@ struct RoadConditionButton: View {
 
 // Add this struct for sharing
 struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
+    let items: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(
-            activityItems: activityItems,
+            activityItems: items,
             applicationActivities: nil
         )
+        
+        controller.excludedActivityTypes = [
+            .assignToContact,
+            .addToReadingList,
+            .markupAsPDF,
+            .saveToCameraRoll
+        ]
+        
         return controller
     }
     

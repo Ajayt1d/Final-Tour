@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct JournalView: View {
-    @State private var entries: [JournalEntry] = []
+    @StateObject private var journalStore = JournalStore.shared
     @State private var showingNewEntry = false
     
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 16) {
-                    ForEach(entries.sorted(by: { $0.date > $1.date })) { entry in
+                    ForEach(journalStore.entries.sorted(by: { $0.date > $1.date })) { entry in
                         NavigationLink(destination: JournalEntryDetailView(entry: binding(for: entry))) {
                             JournalCard(entry: entry)
                         }
@@ -28,16 +28,16 @@ struct JournalView: View {
                 }
             }
             .sheet(isPresented: $showingNewEntry) {
-                NewJournalEntryView(entries: $entries)
+                NewJournalEntryView(entries: $journalStore.entries)
             }
         }
     }
     
     private func binding(for entry: JournalEntry) -> Binding<JournalEntry> {
-        guard let index = entries.firstIndex(where: { $0.id == entry.id }) else {
+        guard let index = journalStore.entries.firstIndex(where: { $0.id == entry.id }) else {
             fatalError("Entry not found")
         }
-        return $entries[index]
+        return $journalStore.entries[index]
     }
 }
 
@@ -77,18 +77,6 @@ struct JournalCard: View {
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 }
-
-private var sampleEntries: [JournalEntry] = [
-    JournalEntry(
-        title: "Great Morning Ride",
-        date: Date(),
-        content: "Had an amazing ride through the city...",
-        location: "Edinburgh",
-        hasPhotos: false,
-        mood: .happy
-    )
-    // ... other sample entries
-]
 
 #Preview {
     JournalView()

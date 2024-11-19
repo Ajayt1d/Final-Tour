@@ -6,42 +6,61 @@ struct JournalView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Fixed Header
-                Text("Journal")
-                    .font(.largeTitle)
-                    .bold()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(Color(.systemBackground))
-                
-                // Scrollable Content
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(journalStore.entries.sorted(by: { $0.date > $1.date })) { entry in
-                            NavigationLink(destination: JournalEntryDetailView(entry: binding(for: entry))) {
-                                JournalCard(entry: entry)
+            ZStack {
+                VStack(spacing: 0) {
+                    // Fixed Header
+                    Text("Journal")
+                        .font(.largeTitle)
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color(.systemBackground))
+                    
+                    // Scrollable Content
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(journalStore.entries.sorted(by: { $0.date > $1.date })) { entry in
+                                NavigationLink(destination: JournalEntryDetailView(entry: binding(for: entry))) {
+                                    JournalCard(entry: entry)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
-                    }
-                    .padding()
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                Color.clear.frame(height: 80)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingNewEntry = true
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(.blue)
+                        .padding()
                     }
                 }
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 80)
+                }
+                
+                // Floating Action Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showingNewEntry = true
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.title2.bold())
+                                .foregroundColor(.white)
+                                .frame(width: 60, height: 60)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.blue, .purple],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 90)
+                    }
+                }
             }
+            .navigationBarHidden(true)
         }
         .sheet(isPresented: $showingNewEntry) {
             NewJournalEntryView(entries: $journalStore.entries)

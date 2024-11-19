@@ -3,10 +3,7 @@ import SwiftUI
 struct JourneyView: View {
     @StateObject private var journeyStore = JourneyStore.shared
     @State private var showingPreRideChecklist = false
-    
-    var sortedJourneys: [Journey] {
-        journeyStore.journeys.sorted { $0.date > $1.date }  // Sort by newest first
-    }
+    @State private var showingActiveRide = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -21,9 +18,9 @@ struct JourneyView: View {
             // Scrollable Content
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach($sortedJourneys) { $journey in
+                    ForEach(journeyStore.journeys.sorted(by: { $0.date > $1.date })) { journey in
                         JourneyCard(
-                            journey: $journey,
+                            journey: binding(for: journey),
                             onDelete: {
                                 if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
                                     journeyStore.journeys.remove(at: index)
@@ -61,8 +58,24 @@ struct JourneyView: View {
             Color.clear.frame(height: 80)
         }
         .sheet(isPresented: $showingPreRideChecklist) {
-            PreRideChecklistView()
+            PreRideChecklistView(onStartRide: {
+                showingPreRideChecklist = false
+                showingActiveRide = true
+            })
         }
+        .fullScreenCover(isPresented: $showingActiveRide) {
+            ActiveRideView { journey in
+                journeyStore.journeys.append(journey)
+                journeyStore.save()
+            }
+        }
+    }
+    
+    private func binding(for journey: Journey) -> Binding<Journey> {
+        guard let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) else {
+            fatalError("Journey not found")
+        }
+        return $journeyStore.journeys[index]
     }
 }
 

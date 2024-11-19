@@ -1,42 +1,36 @@
 import SwiftUI
 
 struct JourneyView: View {
-    @State private var entries: [JournalEntry] = [
-        JournalEntry(
-            title: "Great Morning Ride",
-            date: Date(),
-            content: "Had an amazing ride through the city...",
-            location: "Edinburgh",
-            hasPhotos: false,
-            mood: .happy,
-            images: nil
-        )
-    ]
     @StateObject private var journeyStore = JourneyStore.shared
     @State private var showingPreRideChecklist = false
-    @State private var showingActiveRide = false
-    @State private var showingJourneyDetail = false
-    @State private var selectedJourney: Journey?
+    
+    var sortedJourneys: [Journey] {
+        journeyStore.journeys.sorted { $0.date > $1.date }  // Sort by newest first
+    }
     
     var body: some View {
-        VStack {
-            // Header
+        VStack(spacing: 0) {
+            // Fixed Header
             Text("Journey")
                 .font(.largeTitle)
                 .bold()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
+                .background(Color(.systemBackground))
             
-            // Journey List
+            // Scrollable Content
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach($journeyStore.journeys) { $journey in
-                        JourneyCard(journey: $journey, onDelete: {
-                            if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
-                                journeyStore.journeys.remove(at: index)
-                                journeyStore.save()
+                    ForEach($sortedJourneys) { $journey in
+                        JourneyCard(
+                            journey: $journey,
+                            onDelete: {
+                                if let index = journeyStore.journeys.firstIndex(where: { $0.id == journey.id }) {
+                                    journeyStore.journeys.remove(at: index)
+                                    journeyStore.save()
+                                }
                             }
-                        })
+                        )
                     }
                 }
                 .padding()
@@ -63,16 +57,11 @@ struct JourneyView: View {
             }
             .padding(.bottom, -55)
         }
-        .sheet(isPresented: $showingPreRideChecklist) {
-            PreRideChecklistView(onStartRide: {
-                showingPreRideChecklist = false
-                showingActiveRide = true
-            })
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 80)
         }
-        .fullScreenCover(isPresented: $showingActiveRide) {
-            ActiveRideView { newJourney in
-                showingActiveRide = false
-            }
+        .sheet(isPresented: $showingPreRideChecklist) {
+            PreRideChecklistView()
         }
     }
 }

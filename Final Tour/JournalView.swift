@@ -6,30 +6,45 @@ struct JournalView: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(journalStore.entries.sorted(by: { $0.date > $1.date })) { entry in
-                        NavigationLink(destination: JournalEntryDetailView(entry: binding(for: entry))) {
-                            JournalCard(entry: entry)
+            VStack(spacing: 0) {
+                // Fixed Header
+                Text("Journal")
+                    .font(.largeTitle)
+                    .bold()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(.systemBackground))
+                
+                // Scrollable Content
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        ForEach(journalStore.entries.sorted(by: { $0.date > $1.date })) { entry in
+                            NavigationLink(destination: JournalEntryDetailView(entry: binding(for: entry))) {
+                                JournalCard(entry: entry)
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding()
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 80)
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingNewEntry = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.blue)
                     }
                 }
-                .padding()
             }
-            .navigationTitle("Journal")
-            .toolbar {
-                Button(action: {
-                    showingNewEntry = true
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.blue)
-                }
-            }
-            .sheet(isPresented: $showingNewEntry) {
-                NewJournalEntryView(entries: $journalStore.entries)
-            }
+        }
+        .sheet(isPresented: $showingNewEntry) {
+            NewJournalEntryView(entries: $journalStore.entries)
         }
     }
     

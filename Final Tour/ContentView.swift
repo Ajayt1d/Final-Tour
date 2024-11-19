@@ -15,27 +15,15 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             JourneyView()
                 .tag(0)
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)
-                }
             
             JournalView()
                 .tag(1)
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)
-                }
             
             RouteNavigationView()
                 .tag(2)
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)
-                }
             
-            Text("Profile")
+            ProfileView()
                 .tag(3)
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 80)
-                }
         }
         .overlay(
             CustomTabBar(selectedTab: $selectedTab)

@@ -62,6 +62,49 @@ struct RouteNavigationView: View {
         return routeText
     }
     
+    private func createShareableRoute() -> [Any] {
+        var urlComponents = URLComponents()
+        urlComponents.scheme = "http"
+        urlComponents.host = "maps.apple.com"
+        
+        var queryItems: [URLQueryItem] = []
+        
+        // Add start location
+        if startLocation != "Current Location", let start = startPlacemark {
+            queryItems.append(URLQueryItem(name: "saddr", value: "\(start.coordinate.latitude),\(start.coordinate.longitude)"))
+        }
+        
+        // Create waypoints string including stops and destination
+        var waypoints: [String] = []
+        
+        // Add stops
+        for stop in stopPlacemarks {
+            waypoints.append("\(stop.coordinate.latitude),\(stop.coordinate.longitude)")
+        }
+        
+        // Add destination
+        if let end = endPlacemark {
+            waypoints.append("\(end.coordinate.latitude),\(end.coordinate.longitude)")
+        }
+        
+        // Join waypoints with '+to:'
+        if !waypoints.isEmpty {
+            queryItems.append(URLQueryItem(name: "daddr", value: waypoints.joined(separator: "+to:")))
+        }
+        
+        // Add driving mode
+        queryItems.append(URLQueryItem(name: "dirflg", value: "d"))
+        
+        urlComponents.queryItems = queryItems
+        
+        var items: [Any] = [createRouteText()]
+        if let url = urlComponents.url {
+            items.append(url)
+        }
+        
+        return items
+    }
+    
     var body: some View {
         ZStack {
             MapView(locationManager: locationManager, region: $region)
@@ -162,8 +205,6 @@ struct RouteNavigationView: View {
                     }
                     
                     Button(action: {
-                        let routeText = createRouteText()
-                        
                         showingShareSheet = true
                     }) {
                         Circle()
@@ -248,7 +289,7 @@ struct RouteNavigationView: View {
             )
         }
         .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(items: [createRouteText()])
+            ShareSheet(items: createShareableRoute())
         }
         .actionSheet(isPresented: $showingLocationOptions) {
             ActionSheet(

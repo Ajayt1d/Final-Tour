@@ -21,6 +21,7 @@ struct RouteNavigationView: View {
         center: CLLocationCoordinate2D(latitude: 51.507222, longitude: -0.1275),
         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
     )
+    @State private var showingShareSheet = false
     
     private func startNavigation() {
         var mapItems: [MKMapItem] = []
@@ -46,6 +47,19 @@ struct RouteNavigationView: View {
                 MKLaunchOptionsShowsTrafficKey: true
             ]
         )
+    }
+    
+    private func createRouteText() -> String {
+        var routeText = "Check out this route on Final Tour! 🏍\n\n"
+        routeText += "From: \(startLocation)\n"
+        if !stopLocations.isEmpty {
+            routeText += "\nStops:\n"
+            stopLocations.forEach { stop in
+                routeText += "- \(stop)\n"
+            }
+        }
+        routeText += "\nTo: \(endLocation)"
+        return routeText
     }
     
     var body: some View {
@@ -148,7 +162,9 @@ struct RouteNavigationView: View {
                     }
                     
                     Button(action: {
-                        // Share action
+                        let routeText = createRouteText()
+                        
+                        showingShareSheet = true
                     }) {
                         Circle()
                             .fill(Color.orange)
@@ -230,6 +246,9 @@ struct RouteNavigationView: View {
                     }
                 )
             )
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(items: [createRouteText()])
         }
         .actionSheet(isPresented: $showingLocationOptions) {
             ActionSheet(

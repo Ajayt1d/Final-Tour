@@ -470,26 +470,3 @@ struct RoadConditionButton: View {
         }
     }
 }
-
-// Add this struct for sharing
-struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(
-            activityItems: items,
-            applicationActivities: nil
-        )
-        
-        controller.excludedActivityTypes = [
-            .assignToContact,
-            .addToReadingList,
-            .markupAsPDF,
-            .saveToCameraRoll
-        ]
-        
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-} 
